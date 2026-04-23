@@ -161,12 +161,3 @@ impl FontData for FontDataInternal {
     }
 }
 
-
-/// Small helper to assist with `f32` to `i32` casting safety
-fn f32_to_i32_checked(v: f32) -> Result<i32, FontError> {
-    if v.is_finite() && v >= i32::MIN as f32 && v <= i32::MAX as f32 {
-        Ok(v as i32)
-    } else {
-        Err(FontError::InvalidMetrics)
-    }
-}
