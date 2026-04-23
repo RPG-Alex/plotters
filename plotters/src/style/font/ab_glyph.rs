@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::RwLock;
 
+use crate::math_guard::try_convert_float;
+
 struct FontMap {
     map: HashMap<String, FontRef<'static>>,
 }
@@ -128,7 +130,9 @@ impl FontData for FontDataInternal {
         text: &str,
         mut draw: DrawFunc,
     ) -> Result<Result<(), E>, Self::ErrorType> {
-        let font = self.font_ref.as_scaled(size as f32);
+        let size = try_convert_float::<f64,f32, Self::ErrorType>(size, FontError::InvalidMetrics)?;
+        todo!();
+        let font = self.font_ref.as_scaled(size);
         let mut draw = |x: i32, y: i32, c| {
             let (base_x, base_y) = pos;
             draw(base_x + x, base_y + y, c)
