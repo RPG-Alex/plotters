@@ -33,6 +33,7 @@ pub enum FontError {
     GlyphError(Arc<GlyphLoadingError>),
     FontHandleUnavailable,
     FaceParseError(String),
+    InvalidFontBox,
 }
 
 impl std::fmt::Display for FontError {
@@ -46,6 +47,7 @@ impl std::fmt::Display for FontError {
             FontError::GlyphError(e) => write!(fmt, "Glyph error {}", e),
             FontError::FontHandleUnavailable => write!(fmt, "Font handle is not available"),
             FontError::FaceParseError(e) => write!(fmt, "Font face parse error {}", e),
+            FontError::InvalidFontBox => write!(fmt, "Font Box is Invalid")
         }
     }
 }

@@ -285,7 +285,7 @@ impl<'a, 'b, DB: DrawingBackend + 'a, CT: CoordTranslate> SeriesLabelStyle<'a, '
                 DrawingAreaErrorKind::BackendError(DrawingErrorKind::FontError(Box::new(e)))
             })?
             .into_iter()
-            .zip(funcs.into_iter())
+            .zip(funcs)
         {
             let legend_element = make_elem((label_x + margin, (y0 + y1) / 2));
             drawing_area.draw(&legend_element)?;

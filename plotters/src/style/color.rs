@@ -169,10 +169,10 @@ impl HSLColor {
         if !h.is_finite() {
             return Err(HSLColorError::NonFiniteHue);
         }
-        if !s.is_finite() || s < 0.0 || s > 1.0 {
+        if !s.is_finite() || !(0.0..=1.0).contains(&s) {
             return Err(HSLColorError::SaturationOutOfRange);
         }
-        if !l.is_finite() || l < 0.0 || l > 1.0 {
+        if !l.is_finite() || !(0.0..=1.0).contains(&l) {
             return Err(HSLColorError::LightnessOutOfRange);
         }
         Ok(Self(h, s, l))

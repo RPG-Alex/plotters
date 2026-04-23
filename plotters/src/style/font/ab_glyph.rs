@@ -74,6 +74,8 @@ pub enum FontError {
     Unknown,
     /// No font data available for the requested family and style.
     FontUnavailable,
+    /// Metrics passed are out of a valid and safe range
+    InvalidMetrics,
 }
 impl Display for FontError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -156,5 +158,15 @@ impl FontData for FontDataInternal {
             x_shift += font.h_advance(font.glyph_id(c));
         }
         Ok(Ok(()))
+    }
+}
+
+
+/// Small helper to assist with `f32` to `i32` casting safety
+fn f32_to_i32_checked(v: f32) -> Result<i32, FontError> {
+    if v.is_finite() && v >= i32::MIN as f32 && v <= i32::MAX as f32 {
+        Ok(v as i32)
+    } else {
+        Err(FontError::InvalidMetrics)
     }
 }

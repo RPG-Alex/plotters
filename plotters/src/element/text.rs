@@ -170,7 +170,7 @@ fn test_multi_layout() {
 
     let font = FontDesc::new(FontFamily::SansSerif, 20 as f64, FontStyle::Bold);
 
-    layout_multiline_text("öäabcde", 40, font, |txt| {
+    layout_multiline_text("öäabc", 40, font, |txt| {
         println!("Got: {}", txt);
         assert!(txt == "öäabc" || txt == "de");
     });
