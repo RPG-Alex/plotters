@@ -1,5 +1,5 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter,
+    AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, Ranged1DError, ValueFormatter
 };
 use std::ops::Range;
 
@@ -69,7 +69,7 @@ where
 impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = NestedValue<P::ValueType, S::ValueType>;
-
+    type ErrorType = Ranged1DError;
     fn range(&self) -> Range<Self::ValueType> {
         let primary_range = self.primary.range();
 
@@ -80,7 +80,7 @@ impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
             ..NestedValue::Value(primary_range.end, secondary_right)
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let idx = self.primary.index_of(value.category()).unwrap_or(0);
         let total = self.primary.size();
 

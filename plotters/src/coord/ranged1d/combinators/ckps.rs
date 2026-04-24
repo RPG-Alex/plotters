@@ -55,12 +55,13 @@ where
 {
     type ValueType = R::ValueType;
     type FormatOption = R::FormatOption;
+    type ErrorType = R::ErrorType;
 
     fn range(&self) -> Range<Self::ValueType> {
         self.inner.range()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         self.inner.map(value, limit)
     }
 
@@ -180,12 +181,13 @@ impl<R: Ranged> WithKeyPointMethod<R> {
 impl<R: Ranged> Ranged for WithKeyPointMethod<R> {
     type ValueType = R::ValueType;
     type FormatOption = R::FormatOption;
+    type ErrorType = R::ErrorType;
 
     fn range(&self) -> Range<Self::ValueType> {
         self.inner.range()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         self.inner.map(value, limit)
     }
 
@@ -221,7 +223,7 @@ mod test {
     #[test]
     fn test_with_key_points() {
         let range = (0..100).with_key_points(vec![1, 2, 3]);
-        assert_eq!(range.map(&3, (0, 1000)), 30);
+        assert_eq!(range.map(&3, (0, 1000))?, 30);
         assert_eq!(range.range(), 0..100);
         assert_eq!(range.key_points(BoldPoints(100)), vec![1, 2, 3]);
         assert_eq!(range.key_points(LightPoints::new(100, 100)), vec![]);
@@ -249,7 +251,7 @@ mod test {
     #[test]
     fn test_with_key_point_method() {
         let range = (0..100).with_key_point_func(|_| vec![1, 2, 3]);
-        assert_eq!(range.map(&3, (0, 1000)), 30);
+        assert_eq!(range.map(&3, (0, 1000))?, 30);
         assert_eq!(range.range(), 0..100);
         assert_eq!(range.key_points(BoldPoints(100)), vec![1, 2, 3]);
         assert_eq!(range.key_points(LightPoints::new(100, 100)), vec![]);

@@ -56,6 +56,9 @@ use std::ops::Range;
 pub(super) mod combinators;
 pub(super) mod types;
 
+pub(crate) mod errors;
+pub use errors::Ranged1DError;
+
 mod discrete;
 pub use discrete::{DiscreteRanged, IntoSegmentedCoord, SegmentValue, SegmentedCoord};
 
@@ -197,9 +200,12 @@ pub trait Ranged {
 
     /// The type of this value in this range specification
     type ValueType;
+    
+    /// The error type to return in a result. 
+    type ErrorType;
 
     /// This function maps the value to i32, which is the drawing coordinate
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32;
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType>;
 
     /// This function gives the key points that we can draw a grid based on this
     fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<Self::ValueType>;
@@ -223,7 +229,7 @@ pub trait Ranged {
 /// logic value.
 pub trait ReversibleRanged: Ranged {
     /// Perform the reverse mapping
-    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<Self::ValueType>;
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Result<Option<Self::ValueType>, Self::ErrorType>;
 }
 
 /// The trait for the type that can be converted into a ranged coordinate axis

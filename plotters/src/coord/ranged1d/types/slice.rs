@@ -1,5 +1,5 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged, Ranged1DError,
 };
 use std::ops::Range;
 
@@ -12,13 +12,13 @@ pub struct RangedSlice<'a, T: PartialEq>(&'a [T]);
 impl<'a, T: PartialEq> Ranged for RangedSlice<'a, T> {
     type FormatOption = DefaultFormatting;
     type ValueType = &'a T;
-
+    type ErrorType = Ranged1DError;
     fn range(&self) -> Range<&'a T> {
         // If inner slice is empty, we should always panic
         &self.0[0]..&self.0[self.0.len() - 1]
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Ranged1DError> {
         match self.0.iter().position(|x| &x == value) {
             Some(pos) => {
                 let pixel_span = limit.1 - limit.0;

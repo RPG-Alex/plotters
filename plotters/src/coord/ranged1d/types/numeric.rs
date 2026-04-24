@@ -5,7 +5,7 @@ use crate::coord::{
     combinators::WithKeyPoints,
     ranged1d::{
         AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-        Ranged, ReversibleRanged, ValueFormatter,
+        Ranged, ReversibleRanged, ValueFormatter, errors::Ranged1DError
     },
 };
 
@@ -48,7 +48,7 @@ macro_rules! impl_ranged_type_trait {
 macro_rules! impl_reverse_mapping_trait {
     ($type:ty, $name: ident) => {
         impl ReversibleRanged for $name {
-            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Option<$type> {
+            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, Ranged1DError> {
                 if p < min.min(max) || p > max.max(min) || min == max {
                     return None;
                 }
@@ -61,7 +61,7 @@ macro_rules! impl_reverse_mapping_trait {
     };
 }
 macro_rules! make_numeric_coord {
-    ($type:ty, $name:ident, $key_points:ident, $doc: expr, $fmt: ident) => {
+    ($type:ty, $error:ty, $name:ident, $key_points:ident, $doc: expr, $fmt: ident) => {
         #[doc = $doc]
         #[derive(Clone)]
         pub struct $name($type, $type);
@@ -73,8 +73,9 @@ macro_rules! make_numeric_coord {
         impl Ranged for $name {
             type FormatOption = $fmt;
             type ValueType = $type;
+            type ErrorType = $error;
             #[allow(clippy::float_cmp)]
-            fn map(&self, v: &$type, limit: (i32, i32)) -> i32 {
+            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, Ranged1DError> {
                 // Corner case: If we have a range that have only one value,
                 // then we just assign everything to the only point
                 if self.1 == self.0 {
@@ -111,8 +112,8 @@ macro_rules! make_numeric_coord {
             }
         }
     };
-    ($type:ty, $name:ident, $key_points:ident, $doc: expr) => {
-        make_numeric_coord!($type, $name, $key_points, $doc, DefaultFormatting);
+    ($type:ty, $error:ty, $name:ident, $key_points:ident, $doc: expr) => {
+        make_numeric_coord!($type, $error, $name, $key_points, $doc, DefaultFormatting);
     };
 }
 
@@ -254,6 +255,7 @@ gen_key_points_comp!(integer, compute_usize_key_points, usize);
 
 make_numeric_coord!(
     f32,
+    Ranged1DError,
     RangedCoordf32,
     compute_f32_key_points,
     "The ranged coordinate for type f32",
@@ -283,6 +285,7 @@ impl ValueFormatter<f32> for WithKeyPoints<RangedCoordf32> {
 
 make_numeric_coord!(
     f64,
+    Ranged1DError,
     RangedCoordf64,
     compute_f64_key_points,
     "The ranged coordinate for type f64",
@@ -311,48 +314,56 @@ impl ValueFormatter<f64> for WithKeyPoints<RangedCoordf64> {
 }
 make_numeric_coord!(
     u32,
+    Ranged1DError,
     RangedCoordu32,
     compute_u32_key_points,
     "The ranged coordinate for type u32"
 );
 make_numeric_coord!(
     i32,
+    Ranged1DError,
     RangedCoordi32,
     compute_i32_key_points,
     "The ranged coordinate for type i32"
 );
 make_numeric_coord!(
     u64,
+    Ranged1DError,
     RangedCoordu64,
     compute_u64_key_points,
     "The ranged coordinate for type u64"
 );
 make_numeric_coord!(
     i64,
+    Ranged1DError,
     RangedCoordi64,
     compute_i64_key_points,
     "The ranged coordinate for type i64"
 );
 make_numeric_coord!(
     u128,
+    Ranged1DError,
     RangedCoordu128,
     compute_u128_key_points,
     "The ranged coordinate for type u128"
 );
 make_numeric_coord!(
     i128,
+    Ranged1DError,
     RangedCoordi128,
     compute_i128_key_points,
     "The ranged coordinate for type i128"
 );
 make_numeric_coord!(
     usize,
+    Ranged1DError,
     RangedCoordusize,
     compute_usize_key_points,
     "The ranged coordinate for type usize"
 );
 make_numeric_coord!(
     isize,
+    Ranged1DError,
     RangedCoordisize,
     compute_isize_key_points,
     "The ranged coordinate for type isize"
@@ -421,7 +432,7 @@ mod test {
     fn test_coord_unmap() {
         let coord: RangedCoordu32 = (0..20).into();
         let pos = coord.map(&5, (1000, 2000));
-        let value = coord.unmap(pos, (1000, 2000));
+        let value = coord.unmap(pos?, (1000, 2000));
         assert_eq!(value, Some(5));
     }
 

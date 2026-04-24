@@ -1,10 +1,9 @@
 /// The datetime coordinates
 use chrono::{Date, DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, TimeZone, Timelike};
-use std::ops::{Add, Range, Sub};
+use std::{ops::{Add, Range, Sub}};
 
 use crate::coord::ranged1d::{
-    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged,
-    ReversibleRanged, ValueFormatter,
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, Ranged1DError, ReversibleRanged, ValueFormatter
 };
 
 /// The trait that describe some time value. This is the uniformed abstraction that works
@@ -28,15 +27,16 @@ pub trait TimeValue: Eq + Sized {
     fn from_date(date: Self::DateType) -> Self;
 
     /// Map the coord spec
-    fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> i32 {
+    fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> Result<i32, Ranged1DError>{
         let total_span = end.subtract(begin);
         let value_span = value.subtract(begin);
 
         // First, lets try the nanoseconds precision
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
-                return (f64::from(limit.1 - limit.0) * value_ns as f64 / total_ns as f64) as i32
-                    + limit.0;
+                let limit_sub = limit.1.checked_sub(limit.0).ok_or(TimeError::CoordOutOfRange)?;
+                return Ok((f64::from(limit_sub) * value_ns as f64 / total_ns as f64) as i32
+                    + limit.0);
             }
         }
 
@@ -46,7 +46,7 @@ pub trait TimeValue: Eq + Sized {
         let total_days = total_span.num_days() as f64;
         let value_days = value_span.num_days() as f64;
 
-        (f64::from(limit.1 - limit.0) * value_days / total_days) as i32 + limit.0
+        Ok((f64::from(limit.1 - limit.0) * value_days / total_days) as i32 + limit.0)
     }
 
     /// Map pixel to coord spec
@@ -212,12 +212,13 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = D;
+    type ErrorType = Ranged1DError;
 
     fn range(&self) -> Range<D> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Ranged1DError> {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -402,12 +403,13 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
+    type ErrorType = Ranged1DError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         T::map_coord(value, &self.0.start, &self.0.end, limit)
     }
 
@@ -529,12 +531,13 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
+    type ErrorType = Ranged1DError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         T::map_coord(value, &self.0.start, &self.0.end, limit)
     }
 
@@ -656,12 +659,13 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = DT;
+    type ErrorType = Ranged1DError;
 
     fn range(&self) -> Range<DT> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -713,8 +717,9 @@ where
     RangedDate<DT::DateType>: Ranged<ValueType = DT::DateType>,
 {
     /// Perform the reverse mapping
-    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<Self::ValueType> {
-        Some(TimeValue::unmap_coord(input, &self.0, &self.1, limit))
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Result<Option<Self::ValueType>, Self::ErrorType> {
+        let value = Some(TimeValue::unmap_coord(input, &self.0, &self.1, limit));
+        Ok(value)
     }
 }
 
@@ -736,12 +741,13 @@ impl From<Range<Duration>> for RangedDuration {
 impl Ranged for RangedDuration {
     type FormatOption = DefaultFormatting;
     type ValueType = Duration;
+    type ErrorType = Ranged1DError;
 
     fn range(&self) -> Range<Duration> {
         self.0..self.1
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let total_span = self.1 - self.0;
         let value_span = *value - self.0;
 

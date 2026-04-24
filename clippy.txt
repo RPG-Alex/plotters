@@ -1,0 +1,114 @@
+warning: /home/alex/Projects/plotters/plotters/Cargo.toml: unused manifest key: package.msrv
+    Checking plotters v0.3.7 (/home/alex/Projects/plotters/plotters)
+error: unused import: `core::fmt`
+ --> plotters/src/coord/ranged1d/types/datetime.rs:3:5
+  |
+3 | use core::fmt;
+  |     ^^^^^^^^^
+  |
+  = note: `-D unused-imports` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_imports)]`
+
+error: unused import: `fmt::Display`
+ --> plotters/src/coord/ranged1d/types/datetime.rs:4:11
+  |
+4 | use std::{fmt::Display, ops::{Add, Range, Sub}};
+  |           ^^^^^^^^^^^^
+
+error[E0277]: `coord::ranged1d::types::datetime::TimeError` doesn't implement `std::fmt::Debug`
+  --> plotters/src/coord/ranged1d/types/datetime.rs:30:28
+   |
+30 | impl std::error::Error for TimeError {}
+   |                            ^^^^^^^^^ the trait `std::fmt::Debug` is not implemented for `coord::ranged1d::types::datetime::TimeError`
+   |
+   = note: add `#[derive(Debug)]` to `coord::ranged1d::types::datetime::TimeError` or manually `impl std::fmt::Debug for coord::ranged1d::types::datetime::TimeError`
+note: required by a bound in `std::error::Error`
+  --> /home/alex/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/error.rs:59:18
+   |
+59 | pub trait Error: Debug + Display {
+   |                  ^^^^^ required by this bound in `Error`
+help: consider annotating `coord::ranged1d::types::datetime::TimeError` with `#[derive(Debug)]`
+   |
+12 + #[derive(Debug)]
+13 | enum TimeError {
+   |
+
+error[E0308]: mismatched types
+  --> plotters/src/coord/ranged1d/types/datetime.rs:72:9
+   |
+53 |     fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> Result<i32, TimeError>{
+   |                                                                                ---------------------- expected `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>` because of return type
+...
+72 |         (f64::from(limit.1 - limit.0) * value_days / total_days) as i32 + limit.0
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<i32, TimeError>`, found `i32`
+   |
+   = note: expected enum `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>`
+              found type `i32`
+help: try wrapping the expression in `Ok`
+   |
+72 |         Ok((f64::from(limit.1 - limit.0) * value_days / total_days) as i32 + limit.0)
+   |         +++                                                                         +
+
+error[E0308]: mismatched types
+   --> plotters/src/coord/ranged1d/types/datetime.rs:244:9
+    |
+243 |     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    |                                                                  --- expected `i32` because of return type
+244 |         TimeValue::map_coord(value, &self.0, &self.1, limit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `Result<i32, TimeError>`
+    |
+    = note: expected type `i32`
+               found enum `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>`
+help: consider using `Result::expect` to unwrap the `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>` value, panicking if the value is a `Result::Err`
+    |
+244 |         TimeValue::map_coord(value, &self.0, &self.1, limit).expect("REASON")
+    |                                                             +++++++++++++++++
+
+error[E0308]: mismatched types
+   --> plotters/src/coord/ranged1d/types/datetime.rs:434:9
+    |
+433 |     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    |                                                                  --- expected `i32` because of return type
+434 |         T::map_coord(value, &self.0.start, &self.0.end, limit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `Result<i32, TimeError>`
+    |
+    = note: expected type `i32`
+               found enum `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>`
+help: consider using `Result::expect` to unwrap the `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>` value, panicking if the value is a `Result::Err`
+    |
+434 |         T::map_coord(value, &self.0.start, &self.0.end, limit).expect("REASON")
+    |                                                               +++++++++++++++++
+
+error[E0308]: mismatched types
+   --> plotters/src/coord/ranged1d/types/datetime.rs:561:9
+    |
+560 |     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    |                                                                  --- expected `i32` because of return type
+561 |         T::map_coord(value, &self.0.start, &self.0.end, limit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `Result<i32, TimeError>`
+    |
+    = note: expected type `i32`
+               found enum `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>`
+help: consider using `Result::expect` to unwrap the `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>` value, panicking if the value is a `Result::Err`
+    |
+561 |         T::map_coord(value, &self.0.start, &self.0.end, limit).expect("REASON")
+    |                                                               +++++++++++++++++
+
+error[E0308]: mismatched types
+   --> plotters/src/coord/ranged1d/types/datetime.rs:688:9
+    |
+687 |     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    |                                                                  --- expected `i32` because of return type
+688 |         TimeValue::map_coord(value, &self.0, &self.1, limit)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `Result<i32, TimeError>`
+    |
+    = note: expected type `i32`
+               found enum `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>`
+help: consider using `Result::expect` to unwrap the `std::result::Result<i32, coord::ranged1d::types::datetime::TimeError>` value, panicking if the value is a `Result::Err`
+    |
+688 |         TimeValue::map_coord(value, &self.0, &self.1, limit).expect("REASON")
+    |                                                             +++++++++++++++++
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `plotters` (lib) due to 8 previous errors

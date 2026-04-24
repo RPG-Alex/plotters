@@ -1,5 +1,5 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged, Ranged1DError,
 };
 use std::ops::Range;
 
@@ -31,8 +31,9 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = R::ValueType;
+    type ErrorType = Ranged1DError;
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         self.0.map(value, limit)
     }
 
