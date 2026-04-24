@@ -3,8 +3,8 @@ use core::fmt;
 
 #[derive(Debug)]
 pub enum Ranged1DError {
-    PixelRangeOverflow,
-    ZeroSpan,
+    RangeOverflow,
+    RangeUnderFlow,
     NonFiniteProjection,
     CoordOutOfRange,
 }
@@ -12,8 +12,8 @@ pub enum Ranged1DError {
 impl fmt::Display for Ranged1DError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Ranged1DError::PixelRangeOverflow => write!(f, "pixel range overflow"),
-            Ranged1DError::ZeroSpan => write!(f, "time span is zero"),
+            Ranged1DError::RangeOverflow => write!(f, "value range overflow"),
+            Ranged1DError::RangeUnderFlow => write!(f, "value range underflow"),
             Ranged1DError::NonFiniteProjection => {
                 write!(f, "projection produced a non-finite value")
             }

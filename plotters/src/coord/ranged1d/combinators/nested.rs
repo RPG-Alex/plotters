@@ -66,7 +66,7 @@ where
     }
 }
 
-impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
+impl<P: DiscreteRanged, S: Ranged<ErrorType = Ranged1DError>> Ranged for NestedRange<P, S> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = NestedValue<P::ValueType, S::ValueType>;
     type ErrorType = Ranged1DError;
@@ -97,7 +97,9 @@ impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
         if let Some(secondary_value) = value.nested_value() {
             self.secondary[idx].map(secondary_value, (s_left, s_right))
         } else {
-            (s_left + s_right) / 2
+            let sum = s_left.checked_add(s_right).ok_or(Ranged1DError::RangeOverflow)?;
+            let result = sum.checked_div(2).ok_or(Ranged1DError::RangeUnderFlow)?;
+            Ok(result)
         }
     }
 
@@ -129,7 +131,7 @@ impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
     }
 }
 
-impl<P: DiscreteRanged, S: DiscreteRanged> DiscreteRanged for NestedRange<P, S> {
+impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = Ranged1DError>> DiscreteRanged for NestedRange<P, S> {
     fn size(&self) -> usize {
         self.secondary.iter().map(|x| x.size()).sum::<usize>()
     }

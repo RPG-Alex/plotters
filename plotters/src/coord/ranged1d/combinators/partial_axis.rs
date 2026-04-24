@@ -25,7 +25,7 @@ pub trait IntoPartialAxis: AsRangedCoord {
 
 impl<R: AsRangedCoord> IntoPartialAxis for R {}
 
-impl<R: Ranged> Ranged for PartialAxis<R>
+impl<R: Ranged<ErrorType = Ranged1DError>> Ranged for PartialAxis<R>
 where
     R::ValueType: Clone,
 {
@@ -45,17 +45,17 @@ where
         self.0.range()
     }
 
-    fn axis_pixel_range(&self, limit: (i32, i32)) -> Range<i32> {
-        let left = self.map(&self.1.start, limit);
-        let right = self.map(&self.1.end, limit);
+    fn axis_pixel_range(&self, limit: (i32, i32)) -> Result<Range<i32>, Self::ErrorType> {
+        let left = self.map(&self.1.start, limit)?;
+        let right = self.map(&self.1.end, limit)?;
 
-        left.min(right)..left.max(right)
+        Ok(left.min(right)..left.max(right))
     }
 }
 
 impl<R: DiscreteRanged> DiscreteRanged for PartialAxis<R>
 where
-    R: Ranged,
+    R: Ranged<ErrorType = Ranged1DError>,
     <R as Ranged>::ValueType: Eq + Clone,
 {
     fn size(&self) -> usize {

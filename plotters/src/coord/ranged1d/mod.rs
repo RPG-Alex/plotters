@@ -215,11 +215,11 @@ pub trait Ranged {
 
     /// This function provides the on-axis part of its range
     #[allow(clippy::range_plus_one)]
-    fn axis_pixel_range(&self, limit: (i32, i32)) -> Range<i32> {
+    fn axis_pixel_range(&self, limit: (i32, i32)) -> Result<Range<i32>, Self::ErrorType> {
         if limit.0 < limit.1 {
-            limit.0..limit.1
+            Ok(limit.0..limit.1)
         } else {
-            limit.1..limit.0
+            Ok(limit.1..limit.0)
         }
     }
 }
