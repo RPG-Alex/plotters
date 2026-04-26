@@ -5,9 +5,10 @@ use crate::coord::{
     combinators::WithKeyPoints,
     ranged1d::{
         AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-        Ranged, ReversibleRanged, ValueFormatter, errors::Ranged1DError
+        Ranged, ReversibleRanged, ValueFormatter
     },
 };
+use crate::errors::PlotError;
 
 macro_rules! impl_discrete_trait {
     ($name:ident) => {
@@ -48,14 +49,14 @@ macro_rules! impl_ranged_type_trait {
 macro_rules! impl_reverse_mapping_trait {
     ($type:ty, $name: ident) => {
         impl ReversibleRanged for $name {
-            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, Ranged1DError> {
+            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, PlotError> {
                 if p < min.min(max) || p > max.max(min) || min == max {
-                    return None;
+                    return Ok(None);
                 }
 
                 let logical_offset = f64::from(p - min) / f64::from(max - min);
 
-                return Some(((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type);
+                return Ok(Some(((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type));
             }
         }
     };
@@ -75,7 +76,7 @@ macro_rules! make_numeric_coord {
             type ValueType = $type;
             type ErrorType = $error;
             #[allow(clippy::float_cmp)]
-            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, Ranged1DError> {
+            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, PlotError> {
                 // Corner case: If we have a range that have only one value,
                 // then we just assign everything to the only point
                 if self.1 == self.0 {
@@ -255,7 +256,7 @@ gen_key_points_comp!(integer, compute_usize_key_points, usize);
 
 make_numeric_coord!(
     f32,
-    Ranged1DError,
+    PlotError,
     RangedCoordf32,
     compute_f32_key_points,
     "The ranged coordinate for type f32",
@@ -285,7 +286,7 @@ impl ValueFormatter<f32> for WithKeyPoints<RangedCoordf32> {
 
 make_numeric_coord!(
     f64,
-    Ranged1DError,
+    PlotError,
     RangedCoordf64,
     compute_f64_key_points,
     "The ranged coordinate for type f64",
@@ -314,56 +315,56 @@ impl ValueFormatter<f64> for WithKeyPoints<RangedCoordf64> {
 }
 make_numeric_coord!(
     u32,
-    Ranged1DError,
+    PlotError,
     RangedCoordu32,
     compute_u32_key_points,
     "The ranged coordinate for type u32"
 );
 make_numeric_coord!(
     i32,
-    Ranged1DError,
+    PlotError,
     RangedCoordi32,
     compute_i32_key_points,
     "The ranged coordinate for type i32"
 );
 make_numeric_coord!(
     u64,
-    Ranged1DError,
+    PlotError,
     RangedCoordu64,
     compute_u64_key_points,
     "The ranged coordinate for type u64"
 );
 make_numeric_coord!(
     i64,
-    Ranged1DError,
+    PlotError,
     RangedCoordi64,
     compute_i64_key_points,
     "The ranged coordinate for type i64"
 );
 make_numeric_coord!(
     u128,
-    Ranged1DError,
+    PlotError,
     RangedCoordu128,
     compute_u128_key_points,
     "The ranged coordinate for type u128"
 );
 make_numeric_coord!(
     i128,
-    Ranged1DError,
+    PlotError,
     RangedCoordi128,
     compute_i128_key_points,
     "The ranged coordinate for type i128"
 );
 make_numeric_coord!(
     usize,
-    Ranged1DError,
+    PlotError,
     RangedCoordusize,
     compute_usize_key_points,
     "The ranged coordinate for type usize"
 );
 make_numeric_coord!(
     isize,
-    Ranged1DError,
+    PlotError,
     RangedCoordisize,
     compute_isize_key_points,
     "The ranged coordinate for type isize"

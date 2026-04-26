@@ -4,7 +4,7 @@ use crate::coord::ranged1d::{
 };
 use std::marker::PhantomData;
 use std::ops::Range;
-use crate::coord::ranged1d::errors::Ranged1DError;
+use crate::errors::PlotError;
 
 /// The trait for the type that is able to be presented in the log scale.
 /// This trait is primarily used by [LogRangeExt](struct.LogRangeExt.html).
@@ -199,7 +199,7 @@ impl<V: LogScalable> LogCoord<V> {
 impl<V: LogScalable> Ranged for LogCoord<V> {
     type FormatOption = DefaultFormatting;
     type ValueType = V;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
     fn map(&self, value: &V, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let fv = self.value_to_f64(value);
         let value_ln = fv.ln();

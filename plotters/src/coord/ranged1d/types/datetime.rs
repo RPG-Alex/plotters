@@ -3,8 +3,9 @@ use chrono::{Date, DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, TimeZ
 use std::{ops::{Add, Range, Sub}};
 
 use crate::coord::ranged1d::{
-    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, Ranged1DError, ReversibleRanged, ValueFormatter
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter
 };
+use crate::errors::PlotError;
 
 /// The trait that describe some time value. This is the uniformed abstraction that works
 /// for both Date, DateTime and Duration, etc.
@@ -27,14 +28,14 @@ pub trait TimeValue: Eq + Sized {
     fn from_date(date: Self::DateType) -> Self;
 
     /// Map the coord spec
-    fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> Result<i32, Ranged1DError>{
+    fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> Result<i32, PlotError>{
         let total_span = end.subtract(begin);
         let value_span = value.subtract(begin);
 
         // First, lets try the nanoseconds precision
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
-                let limit_sub = limit.1.checked_sub(limit.0).ok_or(TimeError::CoordOutOfRange)?;
+                let limit_sub = limit.1.checked_sub(limit.0).ok_or(PlotError::CoordOutOfRange)?;
                 return Ok((f64::from(limit_sub) * value_ns as f64 / total_ns as f64) as i32
                     + limit.0);
             }
@@ -212,13 +213,13 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = D;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn range(&self) -> Range<D> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Ranged1DError> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, PlotError> {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -403,7 +404,7 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
@@ -531,7 +532,7 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
@@ -659,7 +660,7 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = DT;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn range(&self) -> Range<DT> {
         self.0.clone()..self.1.clone()
@@ -741,7 +742,7 @@ impl From<Range<Duration>> for RangedDuration {
 impl Ranged for RangedDuration {
     type FormatOption = DefaultFormatting;
     type ValueType = Duration;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn range(&self) -> Range<Duration> {
         self.0..self.1

@@ -56,9 +56,6 @@ use std::ops::Range;
 pub(super) mod combinators;
 pub(super) mod types;
 
-pub(crate) mod errors;
-pub use errors::Ranged1DError;
-
 mod discrete;
 pub use discrete::{DiscreteRanged, IntoSegmentedCoord, SegmentValue, SegmentedCoord};
 

@@ -73,7 +73,7 @@ where
         }
     }
 
-    fn axis_pixel_range(&self, limit: (i32, i32)) -> Range<i32> {
+    fn axis_pixel_range(&self, limit: (i32, i32)) -> Result<Range<i32>, Self::ErrorType> {
         self.inner.axis_pixel_range(limit)
     }
 }
@@ -199,7 +199,7 @@ impl<R: Ranged> Ranged for WithKeyPointMethod<R> {
         }
     }
 
-    fn axis_pixel_range(&self, limit: (i32, i32)) -> Range<i32> {
+    fn axis_pixel_range(&self, limit: (i32, i32)) -> Result<Range<i32>, Self::ErrorType> {
         self.inner.axis_pixel_range(limit)
     }
 }
@@ -238,7 +238,7 @@ mod test {
         assert_eq!(range.index_of(&10), Some(10));
         assert_eq!(range.from_index(10), Some(10));
 
-        assert_eq!(range.axis_pixel_range((0, 1000)), 0..1000);
+        assert_eq!(range.axis_pixel_range((0, 1000))?, 0..1000);
 
         let mut range = range;
 
@@ -266,6 +266,6 @@ mod test {
         assert_eq!(range.index_of(&10), Some(10));
         assert_eq!(range.from_index(10), Some(10));
 
-        assert_eq!(range.axis_pixel_range((0, 1000)), 0..1000);
+        assert_eq!(range.axis_pixel_range((0, 1000))?, 0..1000);
     }
 }

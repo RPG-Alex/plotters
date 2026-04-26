@@ -1,6 +1,7 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged, Ranged1DError,
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
 };
+use crate::errors::PlotError;
 use std::ops::Range;
 
 /// This axis decorator will make the axis partially display on the axis.
@@ -25,13 +26,13 @@ pub trait IntoPartialAxis: AsRangedCoord {
 
 impl<R: AsRangedCoord> IntoPartialAxis for R {}
 
-impl<R: Ranged<ErrorType = Ranged1DError>> Ranged for PartialAxis<R>
+impl<R: Ranged<ErrorType = PlotError>> Ranged for PartialAxis<R>
 where
     R::ValueType: Clone,
 {
     type FormatOption = DefaultFormatting;
     type ValueType = R::ValueType;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         self.0.map(value, limit)
@@ -55,7 +56,7 @@ where
 
 impl<R: DiscreteRanged> DiscreteRanged for PartialAxis<R>
 where
-    R: Ranged<ErrorType = Ranged1DError>,
+    R: Ranged<ErrorType = PlotError>,
     <R as Ranged>::ValueType: Eq + Clone,
 {
     fn size(&self) -> usize {

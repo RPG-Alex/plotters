@@ -1,6 +1,7 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, Ranged1DError, ReversibleRanged, ValueFormatter
+    AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter
 };
+use crate::errors::PlotError;
 use std::ops::Range;
 
 /// The trait indicates the coordinate is discrete
@@ -139,7 +140,7 @@ where
 impl<D: DiscreteRanged> Ranged for SegmentedCoord<D> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = SegmentValue<D::ValueType>;
-    type ErrorType = Ranged1DError;
+    type ErrorType = PlotError;
 
     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let margin = ((limit.1 - limit.0) as f32 / self.0.size() as f32).round() as i32;
