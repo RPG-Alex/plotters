@@ -1,7 +1,7 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter,
 };
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use crate::math_guard::{float_to_integer_checked, non_zero_checked};
 use std::ops::Range;
 
@@ -140,21 +140,21 @@ where
 
 impl<D: DiscreteRanged> Ranged for SegmentedCoord<D>
 where
-    PlotError: From<<D as Ranged>::ErrorType>,
+    MathError: From<<D as Ranged>::ErrorType>,
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = SegmentValue<D::ValueType>;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let pixel_span = (i64::from(limit.1) - i64::from(limit.0)) as f64;
         let size =
-            non_zero_checked::<usize, PlotError>(self.0.size(), PlotError::ZeroDivision)? as f64;
-        let margin = float_to_integer_checked::<f64, i32, PlotError>(
+            non_zero_checked::<usize, MathError>(self.0.size(), MathError::ZeroDivision)? as f64;
+        let margin = float_to_integer_checked::<f64, i32, MathError>(
             (pixel_span / size).round(),
-            PlotError::ValueOutOfRange,
+            MathError::ValueOutOfRange,
         )?;
-        let upper = limit.1.checked_sub(margin).ok_or(PlotError::ValueUnderflow)?;
+        let upper = limit.1.checked_sub(margin).ok_or(MathError::ValueUnderflow)?;
         match value {
             SegmentValue::Exact(coord) => Ok(self.0.map(
                 coord,
@@ -172,12 +172,12 @@ where
                     ),
                 )?;
                 if let Some(idx) = self.0.index_of(coord) {
-                    if idx.checked_add(1).ok_or(PlotError::ValueOverflow)? < self.0.size() {
+                    if idx.checked_add(1).ok_or(MathError::ValueOverflow)? < self.0.size() {
                         let right = self.0.map(
                             &self
                                 .0
-                                .from_index(idx.checked_add(1).ok_or(PlotError::ValueOverflow)?)
-                                .ok_or(PlotError::ValueOutOfRange)?,
+                                .from_index(idx.checked_add(1).ok_or(MathError::ValueOverflow)?)
+                                .ok_or(MathError::ValueOutOfRange)?,
                             (
                                 limit.0,
                                 upper,
@@ -210,7 +210,7 @@ where
 
 impl<D: DiscreteRanged> DiscreteRanged for SegmentedCoord<D>
 where
-    PlotError: From<<D as Ranged>::ErrorType>,
+    MathError: From<<D as Ranged>::ErrorType>,
 {
     fn size(&self) -> usize {
         self.0.size() + 1

@@ -55,19 +55,26 @@ pub mod cartesian {
 mod translate;
 pub use translate::{CoordTranslate, ReverseCoordTranslate};
 
+use crate::math_errors::MathError;
+
 /// The coordinate translation that only impose shift
 #[derive(Debug, Clone)]
 pub struct Shift(pub BackendCoord);
 
 impl CoordTranslate for Shift {
     type From = BackendCoord;
-    fn translate(&self, from: &Self::From) -> BackendCoord {
-        (from.0 + (self.0).0, from.1 + (self.0).1)
+    type ErrorType = MathError;
+    fn translate(&self, from: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
+        let x = from.0.checked_add((self.0).0).ok_or(MathError::ValueOverflow)?;
+        let y = from.1.checked_add((self.0).1).ok_or(MathError::ValueOverflow)?;
+        Ok((x,y))
     }
 }
 
 impl ReverseCoordTranslate for Shift {
-    fn reverse_translate(&self, input: BackendCoord) -> Option<BackendCoord> {
-        Some((input.0 - (self.0).0, input.1 - (self.0).1))
+    fn reverse_translate(&self, input: BackendCoord) -> Result<Option<BackendCoord>, Self::ErrorType> {
+        let x = input.0.checked_sub((self.0).0).ok_or(MathError::ValueUnderflow)?;
+        let y = input.1.checked_sub((self.0).1).ok_or(MathError::ValueUnderflow)?;
+        Ok(Some((x,y)))
     }
 }

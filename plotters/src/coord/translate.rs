@@ -5,9 +5,11 @@ use std::ops::Deref;
 pub trait CoordTranslate {
     /// Specifies the object to be translated from
     type From;
+    /// Specifies the error type to use
+    type ErrorType;
 
     /// Translate the guest coordinate to the guest coordinate
-    fn translate(&self, from: &Self::From) -> BackendCoord;
+    fn translate(&self, from: &Self::From) -> Result<BackendCoord, Self::ErrorType>;
 
     /// Get the Z-value of current coordinate
     fn depth(&self, _from: &Self::From) -> i32 {
@@ -21,7 +23,8 @@ where
     T: Deref<Target = C>,
 {
     type From = C::From;
-    fn translate(&self, from: &Self::From) -> BackendCoord {
+    type ErrorType = C::ErrorType;
+    fn translate(&self, from: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
         self.deref().translate(from)
     }
 }
@@ -34,5 +37,5 @@ pub trait ReverseCoordTranslate: CoordTranslate {
     /// logic coordinate.
     /// Note: the return value is an option, because it's possible that the drawing
     /// coordinate isn't able to be represented in te guest coordinate system
-    fn reverse_translate(&self, input: BackendCoord) -> Option<Self::From>;
+    fn reverse_translate(&self, input: BackendCoord) -> Result< Option<Self::From>, Self::ErrorType>;
 }

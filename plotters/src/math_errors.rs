@@ -1,7 +1,7 @@
 use core::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum PlotError {
+pub enum MathError {
     ValueOverflow,
     ValueUnderflow,
     NonFiniteCalculation,
@@ -9,26 +9,26 @@ pub enum PlotError {
     ZeroDivision,
 }
 
-impl fmt::Display for PlotError {
+impl fmt::Display for MathError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PlotError::ValueOverflow => {
+            MathError::ValueOverflow => {
                 write!(f, "value exceeds the target type's maximum")
             }
-            PlotError::ValueUnderflow => {
+            MathError::ValueUnderflow => {
                 write!(f, "value is below the target type's minimum")
             }
-            PlotError::NonFiniteCalculation => {
+            MathError::NonFiniteCalculation => {
                 write!(f, "calculation produced a non-finite value")
             }
-            PlotError::ValueOutOfRange => {
+            MathError::ValueOutOfRange => {
                 write!(f, "value is out of range for the target type")
             }
-            PlotError::ZeroDivision => {
+            MathError::ZeroDivision => {
                 write!(f, "attempted to divide by zero")
             }
         }
     }
 }
 
-impl std::error::Error for PlotError {}
+impl std::error::Error for MathError {}

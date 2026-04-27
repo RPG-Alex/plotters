@@ -2,7 +2,7 @@
 use chrono::{Date, DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, TimeZone, Timelike};
 use std::ops::{Add, Range, Sub};
 
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use crate::{
     coord::ranged1d::{
         AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
@@ -37,7 +37,7 @@ pub trait TimeValue: Eq + Sized {
         begin: &Self,
         end: &Self,
         limit: (i32, i32),
-    ) -> Result<i32, PlotError> {
+    ) -> Result<i32, MathError> {
         let total_span = end.subtract(begin);
         let value_span = value.subtract(begin);
         // Calculate the pixel span cast into i64 to avoid under flowing.
@@ -47,13 +47,13 @@ pub trait TimeValue: Eq + Sized {
             if let Some(value_ns) = value_span.num_nanoseconds() {
                 let value_ns = value_ns as f64;
                 let total_ns =
-                    non_zero_checked::<i64, PlotError>(total_ns, PlotError::ZeroDivision)? as f64;
+                    non_zero_checked::<i64, MathError>(total_ns, MathError::ZeroDivision)? as f64;
 
-                let result = float_to_integer_checked::<f64, i32, PlotError>(
+                let result = float_to_integer_checked::<f64, i32, MathError>(
                     pixel_span * value_ns / total_ns,
-                    PlotError::ValueOutOfRange,
+                    MathError::ValueOutOfRange,
                 )?;
-                return result.checked_add(limit.0).ok_or(PlotError::ValueOverflow);
+                return result.checked_add(limit.0).ok_or(MathError::ValueOverflow);
             }
         }
 
@@ -61,14 +61,14 @@ pub trait TimeValue: Eq + Sized {
         // If it overflows, it means we have a time span nearly 300 years, we are safe to ignore the
         // portion less than 1 day.
         let total_days =
-            non_zero_checked::<i64, PlotError>(total_span.num_days(), PlotError::ZeroDivision)?
+            non_zero_checked::<i64, MathError>(total_span.num_days(), MathError::ZeroDivision)?
                 as f64;
         let value_days = value_span.num_days() as f64;
-        let result = float_to_integer_checked::<f64, i32, PlotError>(
+        let result = float_to_integer_checked::<f64, i32, MathError>(
             pixel_span * value_days / total_days,
-            PlotError::ValueOutOfRange,
+            MathError::ValueOutOfRange,
         )?;
-        result.checked_add(limit.0).ok_or(PlotError::ValueOverflow)
+        result.checked_add(limit.0).ok_or(MathError::ValueOverflow)
     }
 
     /// Map pixel to coord spec
@@ -234,13 +234,13 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = D;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn range(&self) -> Range<D> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, PlotError> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, MathError> {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -425,7 +425,7 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
@@ -553,7 +553,7 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
@@ -681,7 +681,7 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = DT;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn range(&self) -> Range<DT> {
         self.0.clone()..self.1.clone()
@@ -767,7 +767,7 @@ impl From<Range<Duration>> for RangedDuration {
 impl Ranged for RangedDuration {
     type FormatOption = DefaultFormatting;
     type ValueType = Duration;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn range(&self) -> Range<Duration> {
         self.0..self.1
@@ -777,10 +777,10 @@ impl Ranged for RangedDuration {
         let total_span = self
             .1
             .checked_sub(&self.0)
-            .ok_or(PlotError::ValueUnderflow)?;
+            .ok_or(MathError::ValueUnderflow)?;
         let value_span = value
             .checked_sub(&self.0)
-            .ok_or(PlotError::ValueUnderflow)?;
+            .ok_or(MathError::ValueUnderflow)?;
 
         let limit_difference = (i64::from(limit.1) - i64::from(limit.0)) as f64;
         let offset = 1e-10;
@@ -789,26 +789,26 @@ impl Ranged for RangedDuration {
             if let Some(value_ns) = value_span.num_nanoseconds() {
                 let value_ns = value_ns as f64;
                 let total_ns =
-                    non_zero_checked::<i64, PlotError>(total_ns, PlotError::ZeroDivision)? as f64;
-                let result = float_to_integer_checked::<f64, i32, PlotError>(
+                    non_zero_checked::<i64, MathError>(total_ns, MathError::ZeroDivision)? as f64;
+                let result = float_to_integer_checked::<f64, i32, MathError>(
                     limit_difference * value_ns / total_ns + offset,
-                    PlotError::ValueOutOfRange,
+                    MathError::ValueOutOfRange,
                 )?;
-                return limit.0.checked_add(result).ok_or(PlotError::ValueOverflow);
+                return limit.0.checked_add(result).ok_or(MathError::ValueOverflow);
             }
             return Ok(limit.1);
         }
 
         let value_days = value_span.num_days() as f64;
         let total_days =
-            non_zero_checked::<i64, PlotError>(total_span.num_days(), PlotError::ZeroDivision)?
+            non_zero_checked::<i64, MathError>(total_span.num_days(), MathError::ZeroDivision)?
                 as f64;
 
-        let result = float_to_integer_checked::<f64, i32, PlotError>(
+        let result = float_to_integer_checked::<f64, i32, MathError>(
             limit_difference * value_days / total_days + offset,
-            PlotError::ValueOutOfRange,
+            MathError::ValueOutOfRange,
         )?;
-        limit.0.checked_add(result).ok_or(PlotError::ValueOverflow)
+        limit.0.checked_add(result).ok_or(MathError::ValueOverflow)
     }
 
     fn key_points<HintType: KeyPointHint>(&self, hint: HintType) -> Vec<Self::ValueType> {
@@ -1282,7 +1282,7 @@ mod test {
         let coord: RangedDateTime<_> = (start_time..end_time).into();
         let pos = coord.map(&mid, (1000, 2000));
         assert_eq!(pos, Ok(1500));
-        let value: Result<Option<DateTime<Utc>>, PlotError> =
+        let value: Result<Option<DateTime<Utc>>, MathError> =
             coord.unmap(pos.unwrap(), (1000, 2000));
         assert_eq!(value, Ok(Some(mid)));
     }

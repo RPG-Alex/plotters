@@ -2,6 +2,7 @@ use crate::coord::cartesian::{Cartesian2d, MeshLine};
 use crate::coord::ranged1d::{KeyPointHint, Ranged};
 use crate::coord::{CoordTranslate, Shift};
 use crate::element::{CoordMapper, Drawable, PointCollection};
+use crate::math_errors::MathError;
 use crate::style::text_anchor::{HPos, Pos, VPos};
 use crate::style::{Color, SizeDesc, TextStyle};
 
@@ -143,6 +144,8 @@ pub enum DrawingAreaErrorKind<E: Error + Send + Sync> {
     SharingError,
     /// The error caused by invalid layout
     LayoutError,
+    /// The error is due math or an invalid value
+    Math(MathError)
 }
 
 impl<E: Error + Send + Sync> std::fmt::Display for DrawingAreaErrorKind<E> {
@@ -153,7 +156,14 @@ impl<E: Error + Send + Sync> std::fmt::Display for DrawingAreaErrorKind<E> {
                 write!(fmt, "Multiple backend operation in progress")
             }
             DrawingAreaErrorKind::LayoutError => write!(fmt, "Bad layout"),
+            DrawingAreaErrorKind::Math(math_error) => write!(fmt, "math error: {}", math_error),
         }
+    }
+}
+
+impl <E: Error + Send + Sync> From<MathError> for DrawingAreaErrorKind<E> {
+    fn from(err: MathError) -> Self {
+        DrawingAreaErrorKind::Math(err)
     }
 }
 

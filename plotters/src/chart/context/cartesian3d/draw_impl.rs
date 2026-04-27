@@ -69,7 +69,7 @@ where
             &axis[1][1],
             &axis[1][2],
         ]));
-        let axis_dir = (end.0 - begin.0, end.1 - begin.1);
+        let axis_dir = (end?.0 - begin?.0, end?.1 - begin?.1);
         let (x_range, y_range) = self.plotting_area().get_pixel_range();
         let x_mid = (x_range.start + x_range.end) / 2;
         let y_mid = (y_range.start + y_range.end) / 2;

@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::ops::Range;
 
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use crate::{
     coord::{
         combinators::WithKeyPoints,
@@ -52,7 +52,7 @@ macro_rules! impl_ranged_type_trait {
 macro_rules! impl_reverse_mapping_trait {
     ($type:ty, $name: ident) => {
         impl ReversibleRanged for $name {
-            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, PlotError> {
+            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, MathError> {
                 if p < min.min(max) || p > max.max(min) || min == max {
                     return Ok(None);
                 }
@@ -91,7 +91,7 @@ macro_rules! make_numeric_coord {
 
                 let logic_length = (*v as f64 - self.0 as f64) / (self.1 as f64 - self.0 as f64);
                 if !logic_length.is_finite() {
-                    return Err(PlotError::NonFiniteCalculation);
+                    return Err(MathError::NonFiniteCalculation);
                 }
 
                 let actual_length = (i64::from(limit.1) - i64::from(limit.0)) as f64;
@@ -106,12 +106,12 @@ macro_rules! make_numeric_coord {
                     (actual_length * logic_length - 1e-3).ceil()
                 };
 
-                let offset = float_to_integer_checked::<f64, i32, PlotError>(
+                let offset = float_to_integer_checked::<f64, i32, MathError>(
                     projected,
-                    PlotError::ValueOutOfRange,
+                    MathError::ValueOutOfRange,
                 )?;
 
-                limit.0.checked_add(offset).ok_or(PlotError::ValueOverflow)
+                limit.0.checked_add(offset).ok_or(MathError::ValueOverflow)
             }
             fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<$type> {
                 $key_points((self.0, self.1), hint.max_num_points())
@@ -264,7 +264,7 @@ gen_key_points_comp!(integer, compute_usize_key_points, usize);
 
 make_numeric_coord!(
     f32,
-    PlotError,
+    MathError,
     RangedCoordf32,
     compute_f32_key_points,
     "The ranged coordinate for type f32",
@@ -294,7 +294,7 @@ impl ValueFormatter<f32> for WithKeyPoints<RangedCoordf32> {
 
 make_numeric_coord!(
     f64,
-    PlotError,
+    MathError,
     RangedCoordf64,
     compute_f64_key_points,
     "The ranged coordinate for type f64",
@@ -323,56 +323,56 @@ impl ValueFormatter<f64> for WithKeyPoints<RangedCoordf64> {
 }
 make_numeric_coord!(
     u32,
-    PlotError,
+    MathError,
     RangedCoordu32,
     compute_u32_key_points,
     "The ranged coordinate for type u32"
 );
 make_numeric_coord!(
     i32,
-    PlotError,
+    MathError,
     RangedCoordi32,
     compute_i32_key_points,
     "The ranged coordinate for type i32"
 );
 make_numeric_coord!(
     u64,
-    PlotError,
+    MathError,
     RangedCoordu64,
     compute_u64_key_points,
     "The ranged coordinate for type u64"
 );
 make_numeric_coord!(
     i64,
-    PlotError,
+    MathError,
     RangedCoordi64,
     compute_i64_key_points,
     "The ranged coordinate for type i64"
 );
 make_numeric_coord!(
     u128,
-    PlotError,
+    MathError,
     RangedCoordu128,
     compute_u128_key_points,
     "The ranged coordinate for type u128"
 );
 make_numeric_coord!(
     i128,
-    PlotError,
+    MathError,
     RangedCoordi128,
     compute_i128_key_points,
     "The ranged coordinate for type i128"
 );
 make_numeric_coord!(
     usize,
-    PlotError,
+    MathError,
     RangedCoordusize,
     compute_usize_key_points,
     "The ranged coordinate for type usize"
 );
 make_numeric_coord!(
     isize,
-    PlotError,
+    MathError,
     RangedCoordisize,
     compute_isize_key_points,
     "The ranged coordinate for type isize"

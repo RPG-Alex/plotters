@@ -1,7 +1,7 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
 };
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use std::ops::Range;
 
 /// This axis decorator will make the axis partially display on the axis.
@@ -26,13 +26,13 @@ pub trait IntoPartialAxis: AsRangedCoord {
 
 impl<R: AsRangedCoord> IntoPartialAxis for R {}
 
-impl<R: Ranged<ErrorType = PlotError>> Ranged for PartialAxis<R>
+impl<R: Ranged<ErrorType = MathError>> Ranged for PartialAxis<R>
 where
     R::ValueType: Clone,
 {
     type FormatOption = DefaultFormatting;
     type ValueType = R::ValueType;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
 
     fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         self.0.map(value, limit)
@@ -56,7 +56,7 @@ where
 
 impl<R: DiscreteRanged> DiscreteRanged for PartialAxis<R>
 where
-    R: Ranged<ErrorType = PlotError>,
+    R: Ranged<ErrorType = MathError>,
     <R as Ranged>::ValueType: Eq + Clone,
 {
     fn size(&self) -> usize {
@@ -110,6 +110,6 @@ mod test {
         let r = make_partial_axis(20..80, 0.2..0.8).unwrap();
         assert_eq!(r.size(), 101);
         assert_eq!(r.range(), 0..100);
-        assert_eq!(r.axis_pixel_range((0, 100)), 20..80);
+        assert_eq!(r.axis_pixel_range((0, 100)), Ok(20..80));
     }
 }

@@ -1,6 +1,7 @@
 use super::{ProjectionMatrix, ProjectionMatrixBuilder};
 use crate::coord::ranged1d::Ranged;
 use crate::coord::CoordTranslate;
+use crate::math_errors::MathError;
 use plotters_backend::BackendCoord;
 
 use std::ops::Range;
@@ -120,9 +121,10 @@ impl<X: Ranged, Y: Ranged, Z: Ranged> Cartesian3d<X, Y, Z> {
 
 impl<X: Ranged, Y: Ranged, Z: Ranged> CoordTranslate for Cartesian3d<X, Y, Z> {
     type From = (X::ValueType, Y::ValueType, Z::ValueType);
-    fn translate(&self, coord: &Self::From) -> BackendCoord {
+    type ErrorType = MathError;
+    fn translate(&self, coord: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
         let pixel_coord_3d = self.map_3d(&coord.0, &coord.1, &coord.2);
-        self.projection * pixel_coord_3d
+        Ok(self.projection * pixel_coord_3d)
     }
 
     fn depth(&self, coord: &Self::From) -> i32 {

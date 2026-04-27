@@ -799,7 +799,7 @@ pub mod series;
 pub mod style;
 
 /// Error handling for crate
-pub(crate) mod errors;
+pub(crate) mod math_errors;
 /// used within crate for ensuring math done doesn't cause unexpected behavior (overflow/underflow etc)
 pub(crate) mod math_guard;
 

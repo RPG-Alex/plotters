@@ -1,7 +1,7 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
 };
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use crate::math_guard::{float_to_integer_checked, non_zero_checked};
 use std::ops::Range;
 
@@ -14,13 +14,13 @@ pub struct RangedSlice<'a, T: PartialEq>(&'a [T]);
 impl<'a, T: PartialEq> Ranged for RangedSlice<'a, T> {
     type FormatOption = DefaultFormatting;
     type ValueType = &'a T;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
     fn range(&self) -> Range<&'a T> {
         // If inner slice is empty, we should always panic
         &self.0[0]..&self.0[self.0.len() - 1]
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, PlotError> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, MathError> {
         match self.0.iter().position(|x| &x == value) {
             Some(pos) => {
                 let pixel_span = (i64::from(limit.1) - i64::from(limit.0)) as f64;
@@ -28,18 +28,18 @@ impl<'a, T: PartialEq> Ranged for RangedSlice<'a, T> {
                     .0
                     .len()
                     .checked_sub(1)
-                    .ok_or(PlotError::ValueUnderflow)?;
+                    .ok_or(MathError::ValueUnderflow)?;
 
                 let value_span =
-                    non_zero_checked::<usize, PlotError>(value_span, PlotError::ZeroDivision)?
+                    non_zero_checked::<usize, MathError>(value_span, MathError::ZeroDivision)?
                         as f64;
 
-                let offset = float_to_integer_checked::<f64, i32, PlotError>(
+                let offset = float_to_integer_checked::<f64, i32, MathError>(
                     pixel_span * (pos as f64 / value_span),
-                    PlotError::ValueOutOfRange,
+                    MathError::ValueOutOfRange,
                 )?;
 
-                limit.0.checked_add(offset).ok_or(PlotError::ValueOverflow)
+                limit.0.checked_add(offset).ok_or(MathError::ValueOverflow)
             }
             None => Ok(limit.0),
         }

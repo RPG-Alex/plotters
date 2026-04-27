@@ -1,7 +1,7 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter,
 };
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use std::ops::Range;
 
 /// Describe a value for a nested coordinate
@@ -67,10 +67,10 @@ where
     }
 }
 
-impl<P: DiscreteRanged, S: Ranged<ErrorType = PlotError>> Ranged for NestedRange<P, S> {
+impl<P: DiscreteRanged, S: Ranged<ErrorType = MathError>> Ranged for NestedRange<P, S> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = NestedValue<P::ValueType, S::ValueType>;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
     fn range(&self) -> Range<Self::ValueType> {
         let primary_range = self.primary.range();
 
@@ -100,8 +100,8 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = PlotError>> Ranged for NestedRange
         } else {
             let sum = s_left
                 .checked_add(s_right)
-                .ok_or(PlotError::ValueOverflow)?;
-            let result = sum.checked_div(2).ok_or(PlotError::ValueUnderflow)?;
+                .ok_or(MathError::ValueOverflow)?;
+            let result = sum.checked_div(2).ok_or(MathError::ValueUnderflow)?;
             Ok(result)
         }
     }
@@ -134,7 +134,7 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = PlotError>> Ranged for NestedRange
     }
 }
 
-impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = PlotError>> DiscreteRanged
+impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = MathError>> DiscreteRanged
     for NestedRange<P, S>
 {
     fn size(&self) -> usize {

@@ -2,7 +2,7 @@ use crate::coord::ranged1d::types::RangedCoordf64;
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, KeyPointHint, Ranged, ReversibleRanged,
 };
-use crate::errors::PlotError;
+use crate::math_errors::MathError;
 use std::marker::PhantomData;
 use std::ops::Range;
 
@@ -199,7 +199,7 @@ impl<V: LogScalable> LogCoord<V> {
 impl<V: LogScalable> Ranged for LogCoord<V> {
     type FormatOption = DefaultFormatting;
     type ValueType = V;
-    type ErrorType = PlotError;
+    type ErrorType = MathError;
     fn map(&self, value: &V, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
         let fv = self.value_to_f64(value);
         let value_ln = fv.ln();
