@@ -2,9 +2,9 @@ use crate::coord::ranged1d::types::RangedCoordf64;
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, KeyPointHint, Ranged, ReversibleRanged,
 };
+use crate::errors::PlotError;
 use std::marker::PhantomData;
 use std::ops::Range;
-use crate::errors::PlotError;
 
 /// The trait for the type that is able to be presented in the log scale.
 /// This trait is primarily used by [LogRangeExt](struct.LogRangeExt.html).

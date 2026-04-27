@@ -277,12 +277,18 @@ mod hue_robustness_tests {
             .rgb;
         assert_eq!(normalized, via_helper);
 
-        let wrap_positive =
-            HSLColor::from_degrees(720.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
-        let wrap_negative =
-            HSLColor::from_degrees(-120.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
-        let canonical =
-            HSLColor::from_degrees(0.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
+        let wrap_positive = HSLColor::from_degrees(720.0, 1.0, 0.5)
+            .unwrap()
+            .to_backend_color()
+            .rgb;
+        let wrap_negative = HSLColor::from_degrees(-120.0, 1.0, 0.5)
+            .unwrap()
+            .to_backend_color()
+            .rgb;
+        let canonical = HSLColor::from_degrees(0.0, 1.0, 0.5)
+            .unwrap()
+            .to_backend_color()
+            .rgb;
 
         assert_eq!(wrap_positive, canonical);
         assert_eq!(

@@ -798,10 +798,10 @@ pub mod element;
 pub mod series;
 pub mod style;
 
-/// used within crate for ensuring math done doesn't cause unexpected behavior (overflow/underflow etc)
-pub(crate) mod math_guard;
 /// Error handling for crate
 pub(crate) mod errors;
+/// used within crate for ensuring math done doesn't cause unexpected behavior (overflow/underflow etc)
+pub(crate) mod math_guard;
 
 /// Evaluation Context for Rust. See [the evcxr crate](https://crates.io/crates/evcxr) for more information.
 #[cfg(feature = "evcxr")]

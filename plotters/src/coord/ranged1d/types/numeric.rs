@@ -1,13 +1,13 @@
 use std::convert::TryFrom;
 use std::ops::Range;
 
-use crate::coord::{
+use crate::{coord::{
     combinators::WithKeyPoints,
     ranged1d::{
         AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-        Ranged, ReversibleRanged, ValueFormatter
+        Ranged, ReversibleRanged, ValueFormatter,
     },
-};
+}, math_guard::float_to_integer_checked};
 use crate::errors::PlotError;
 
 macro_rules! impl_discrete_trait {
@@ -56,7 +56,9 @@ macro_rules! impl_reverse_mapping_trait {
 
                 let logical_offset = f64::from(p - min) / f64::from(max - min);
 
-                return Ok(Some(((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type));
+                return Ok(Some(
+                    ((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type,
+                ));
             }
         }
     };
@@ -76,34 +78,40 @@ macro_rules! make_numeric_coord {
             type ValueType = $type;
             type ErrorType = $error;
             #[allow(clippy::float_cmp)]
-            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, PlotError> {
+            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
                 // Corner case: If we have a range that have only one value,
                 // then we just assign everything to the only point
                 if self.1 == self.0 {
-                    return (limit.1 - limit.0) / 2;
+                    let midpoint = (i64::from(limit.0) + i64::from(limit.1)) / 2;
+                    return Ok(midpoint as i32);
                 }
 
                 let logic_length = (*v as f64 - self.0 as f64) / (self.1 as f64 - self.0 as f64);
-
-                let actual_length = limit.1 - limit.0;
-
-                if actual_length == 0 {
-                    return limit.1;
+                if !logic_length.is_finite() {
+                    return Err(PlotError::NonFiniteCalculation);
                 }
 
-                if logic_length.is_infinite() {
-                    if logic_length.is_sign_positive() {
-                        return limit.1;
-                    } else {
-                        return limit.0;
-                    }
+                let actual_length = (i64::from(limit.1) - i64::from(limit.0)) as f64;
+
+                if actual_length == 0.0 {
+                    return Ok(limit.1);
                 }
 
-                if actual_length > 0 {
-                    return limit.0 + (actual_length as f64 * logic_length + 1e-3).floor() as i32;
+                let projected = if actual_length > 0.0 {
+                    (actual_length * logic_length + 1e-3).floor()
                 } else {
-                    return limit.0 + (actual_length as f64 * logic_length - 1e-3).ceil() as i32;
-                }
+                    (actual_length * logic_length - 1e-3).ceil()
+                };
+
+                let offset = float_to_integer_checked::<f64, i32, PlotError>(
+                    projected,
+                    PlotError::ValueOutOfRange,
+                )?;
+
+                limit
+                    .0
+                    .checked_add(offset)
+                    .ok_or(PlotError::ValueOverflow)
             }
             fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<$type> {
                 $key_points((self.0, self.1), hint.max_num_points())
@@ -413,10 +421,10 @@ mod test {
         assert_eq!(coord.key_points(11).len(), 11);
         assert_eq!(coord.key_points(11)[0], 0);
         assert_eq!(coord.key_points(11)[10], 20);
-        assert_eq!(coord.map(&5, (0, 100)), 25);
+        assert_eq!(coord.map(&5, (0, 100)), Ok(25));
 
         let coord: RangedCoordf32 = (0f32..20f32).into();
-        assert_eq!(coord.map(&5.0, (0, 100)), 25);
+        assert_eq!(coord.map(&5.0, (0, 100)), Ok(25));
     }
 
     #[test]
@@ -434,7 +442,7 @@ mod test {
         let coord: RangedCoordu32 = (0..20).into();
         let pos = coord.map(&5, (1000, 2000));
         let value = coord.unmap(pos?, (1000, 2000));
-        assert_eq!(value, Some(5));
+        assert_eq!(value, Ok(Some(5)));
     }
 
     #[test]

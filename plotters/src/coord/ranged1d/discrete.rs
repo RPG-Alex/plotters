@@ -1,5 +1,5 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter
+    AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter,
 };
 use crate::errors::PlotError;
 use std::ops::Range;
@@ -207,7 +207,11 @@ impl<T> From<T> for SegmentValue<T> {
 }
 
 impl<DC: DiscreteRanged> ReversibleRanged for DC {
-    fn unmap(&self, input: i32, limit: (i32, i32)) -> Result<Option<Self::ValueType>, Self::ErrorType> {
+    fn unmap(
+        &self,
+        input: i32,
+        limit: (i32, i32),
+    ) -> Result<Option<Self::ValueType>, Self::ErrorType> {
         let idx = (f64::from(input - limit.0) * (self.size() as f64) / f64::from(limit.1 - limit.0))
             .floor() as usize;
         self.from_index(idx)

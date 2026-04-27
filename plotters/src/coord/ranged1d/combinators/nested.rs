@@ -1,5 +1,5 @@
 use crate::coord::ranged1d::{
-    AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter
+    AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter,
 };
 use crate::errors::PlotError;
 use std::ops::Range;
@@ -98,8 +98,10 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = PlotError>> Ranged for NestedRange
         if let Some(secondary_value) = value.nested_value() {
             self.secondary[idx].map(secondary_value, (s_left, s_right))
         } else {
-            let sum = s_left.checked_add(s_right).ok_or(PlotError::RangeOverflow)?;
-            let result = sum.checked_div(2).ok_or(PlotError::RangeUnderFlow)?;
+            let sum = s_left
+                .checked_add(s_right)
+                .ok_or(PlotError::ValueOverflow)?;
+            let result = sum.checked_div(2).ok_or(PlotError::ValueUnderflow)?;
             Ok(result)
         }
     }
@@ -132,7 +134,9 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = PlotError>> Ranged for NestedRange
     }
 }
 
-impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = PlotError>> DiscreteRanged for NestedRange<P, S> {
+impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = PlotError>> DiscreteRanged
+    for NestedRange<P, S>
+{
     fn size(&self) -> usize {
         self.secondary.iter().map(|x| x.size()).sum::<usize>()
     }
@@ -198,9 +202,9 @@ mod test {
         let range = coord.range();
 
         assert_eq!(NestedValue::Value(0, 0)..NestedValue::Value(10, 11), range);
-        assert_eq!(coord.map(&NestedValue::Category(0), (0, 1100)), 50);
-        assert_eq!(coord.map(&NestedValue::Value(0, 0), (0, 1100)), 0);
-        assert_eq!(coord.map(&NestedValue::Value(5, 4), (0, 1100)), 567);
+        assert_eq!(coord.map(&NestedValue::Category(0), (0, 1100))?, 50);
+        assert_eq!(coord.map(&NestedValue::Value(0, 0), (0, 1100))?, 0);
+        assert_eq!(coord.map(&NestedValue::Value(5, 4), (0, 1100))?, 567);
 
         assert_eq!(coord.size(), (2 + 12) * 11 / 2);
         assert_eq!(coord.index_of(&NestedValue::Value(5, 4)), Some(24));

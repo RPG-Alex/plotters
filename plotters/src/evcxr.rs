@@ -77,8 +77,11 @@ pub fn evcxr_bitmap_figure<
 ) -> Result<SVGWrapper, Box<dyn std::error::Error>> {
     const PIXEL_SIZE: usize = 3;
 
-    let buf_len = (size.0 as usize).checked_mul(size.1 as usize).and_then(|n| n.checked_mul(PIXEL_SIZE)).ok_or("image buffer size overflow")?;
-    
+    let buf_len = (size.0 as usize)
+        .checked_mul(size.1 as usize)
+        .and_then(|n| n.checked_mul(PIXEL_SIZE))
+        .ok_or("image buffer size overflow")?;
+
     let mut buf = vec![0; buf_len];
 
     let root = BitMapBackend::with_buffer(&mut buf, size).into_drawing_area();
@@ -86,8 +89,7 @@ pub fn evcxr_bitmap_figure<
     let mut buffer = String::new();
     {
         let mut svg_root = SVGBackend::with_string(&mut buffer, size);
-        svg_root
-            .blit_bitmap((0, 0), size, &buf)?;
+        svg_root.blit_bitmap((0, 0), size, &buf)?;
     }
     Ok(SVGWrapper(buffer, String::new()))
 }
