@@ -1,14 +1,17 @@
 use std::convert::TryFrom;
 use std::ops::Range;
 
-use crate::{coord::{
-    combinators::WithKeyPoints,
-    ranged1d::{
-        AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-        Ranged, ReversibleRanged, ValueFormatter,
-    },
-}, math_guard::float_to_integer_checked};
 use crate::errors::PlotError;
+use crate::{
+    coord::{
+        combinators::WithKeyPoints,
+        ranged1d::{
+            AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
+            Ranged, ReversibleRanged, ValueFormatter,
+        },
+    },
+    math_guard::float_to_integer_checked,
+};
 
 macro_rules! impl_discrete_trait {
     ($name:ident) => {
@@ -108,10 +111,7 @@ macro_rules! make_numeric_coord {
                     PlotError::ValueOutOfRange,
                 )?;
 
-                limit
-                    .0
-                    .checked_add(offset)
-                    .ok_or(PlotError::ValueOverflow)
+                limit.0.checked_add(offset).ok_or(PlotError::ValueOverflow)
             }
             fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<$type> {
                 $key_points((self.0, self.1), hint.max_num_points())

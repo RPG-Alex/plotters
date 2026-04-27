@@ -8,7 +8,7 @@ use crate::{
         AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
         Ranged, ReversibleRanged, ValueFormatter,
     },
-    math_guard::{float_to_integer_checked, non_zero_checked}, 
+    math_guard::{float_to_integer_checked, non_zero_checked},
 };
 
 /// The trait that describe some time value. This is the uniformed abstraction that works
@@ -46,10 +46,8 @@ pub trait TimeValue: Eq + Sized {
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
                 let value_ns = value_ns as f64;
-                let total_ns = non_zero_checked::<i64, PlotError>(
-                    total_ns,
-                    PlotError::ZeroDivision,
-                )? as f64;
+                let total_ns =
+                    non_zero_checked::<i64, PlotError>(total_ns, PlotError::ZeroDivision)? as f64;
 
                 let result = float_to_integer_checked::<f64, i32, PlotError>(
                     pixel_span * value_ns / total_ns,
@@ -62,10 +60,9 @@ pub trait TimeValue: Eq + Sized {
         // Yes, converting them to floating point may lose precision, but this is Ok.
         // If it overflows, it means we have a time span nearly 300 years, we are safe to ignore the
         // portion less than 1 day.
-        let total_days = non_zero_checked::<i64, PlotError>(
-            total_span.num_days(),
-            PlotError::ZeroDivision,
-        )? as f64;
+        let total_days =
+            non_zero_checked::<i64, PlotError>(total_span.num_days(), PlotError::ZeroDivision)?
+                as f64;
         let value_days = value_span.num_days() as f64;
         let result = float_to_integer_checked::<f64, i32, PlotError>(
             pixel_span * value_days / total_days,
@@ -791,36 +788,27 @@ impl Ranged for RangedDuration {
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
                 let value_ns = value_ns as f64;
-                let total_ns = non_zero_checked::<i64, PlotError>(
-                    total_ns,
-                    PlotError::ZeroDivision,
-                )? as f64;
+                let total_ns =
+                    non_zero_checked::<i64, PlotError>(total_ns, PlotError::ZeroDivision)? as f64;
                 let result = float_to_integer_checked::<f64, i32, PlotError>(
                     limit_difference * value_ns / total_ns + offset,
                     PlotError::ValueOutOfRange,
                 )?;
-                return limit
-                    .0
-                    .checked_add(result)
-                    .ok_or(PlotError::ValueOverflow);
+                return limit.0.checked_add(result).ok_or(PlotError::ValueOverflow);
             }
             return Ok(limit.1);
         }
 
         let value_days = value_span.num_days() as f64;
-        let total_days = non_zero_checked::<i64, PlotError>(
-            total_span.num_days(),
-            PlotError::ZeroDivision,
-        )? as f64;
+        let total_days =
+            non_zero_checked::<i64, PlotError>(total_span.num_days(), PlotError::ZeroDivision)?
+                as f64;
 
         let result = float_to_integer_checked::<f64, i32, PlotError>(
             limit_difference * value_days / total_days + offset,
             PlotError::ValueOutOfRange,
         )?;
-        limit
-            .0
-            .checked_add(result)
-            .ok_or(PlotError::ValueOverflow)
+        limit.0.checked_add(result).ok_or(PlotError::ValueOverflow)
     }
 
     fn key_points<HintType: KeyPointHint>(&self, hint: HintType) -> Vec<Self::ValueType> {

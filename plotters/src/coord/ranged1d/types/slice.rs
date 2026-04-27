@@ -30,8 +30,9 @@ impl<'a, T: PartialEq> Ranged for RangedSlice<'a, T> {
                     .checked_sub(1)
                     .ok_or(PlotError::ValueUnderflow)?;
 
-                let value_span = 
-                    non_zero_checked::<usize, PlotError>(value_span, PlotError::ZeroDivision)? as f64;
+                let value_span =
+                    non_zero_checked::<usize, PlotError>(value_span, PlotError::ZeroDivision)?
+                        as f64;
 
                 let offset = float_to_integer_checked::<f64, i32, PlotError>(
                     pixel_span * (pos as f64 / value_span),
