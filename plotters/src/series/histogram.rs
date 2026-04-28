@@ -6,6 +6,7 @@ use crate::chart::ChartContext;
 use crate::coord::cartesian::Cartesian2d;
 use crate::coord::ranged1d::{DiscreteRanged, Ranged};
 use crate::element::Rectangle;
+use crate::math_errors::MathError;
 use crate::style::{Color, ShapeStyle, GREEN};
 use plotters_backend::DrawingBackend;
 
@@ -202,7 +203,8 @@ where
         parent: &ChartContext<DB, Cartesian2d<BR, ACoord>>,
     ) -> Self
     where
-        ACoord: Ranged<ValueType = A>,
+        BR: Ranged<ErrorType = MathError>,
+        ACoord: Ranged<ValueType = A, ErrorType = MathError>,
     {
         let dp = parent.as_coord_spec().x_spec();
 
@@ -224,7 +226,8 @@ where
         parent: &ChartContext<DB, Cartesian2d<ACoord, BR>>,
     ) -> Self
     where
-        ACoord: Ranged<ValueType = A>,
+        BR: Ranged<ErrorType = MathError>,
+        ACoord: Ranged<ValueType = A, ErrorType = MathError>,
     {
         let dp = parent.as_coord_spec().y_spec();
         Self::empty(dp)

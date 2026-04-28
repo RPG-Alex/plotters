@@ -205,6 +205,7 @@ pub use pie::Pie;
 
 use crate::coord::CoordTranslate;
 use crate::drawing::Rect;
+use crate::math_errors::MathError;
 
 /// A type which is logically a collection of points, under any given coordinate system.
 /// Note: Ideally, a point collection trait should be any type of which coordinate elements can be
@@ -269,8 +270,13 @@ pub struct BackendCoordOnly;
 
 impl CoordMapper for BackendCoordOnly {
     type Output = BackendCoord;
-    fn map<CT: CoordTranslate>(coord_trans: &CT, from: &CT::From, rect: &Rect) -> Result<BackendCoord, Self::ErrorType> {
-        rect.truncate(coord_trans.translate(from)?)?
+
+    fn map<CT: CoordTranslate>(
+        coord_trans: &CT,
+        from: &CT::From,
+        rect: &Rect,
+    ) -> Result<BackendCoord, Self::ErrorType> {
+        rect.truncate(coord_trans.translate(from)?)
     }
 }
 
@@ -287,7 +293,7 @@ impl CoordMapper for BackendCoordAndZ {
         coord_trans: &CT,
         from: &CT::From,
         rect: &Rect,
-    ) -> Result<(BackendCoord, i32), Self:ErrorType> {
+    ) -> Result<(BackendCoord, i32), Self: ErrorType> {
         let coord = rect.truncate(coord_trans.translate(from)?);
         let z = coord_trans.depth(from);
         Ok((coord, z))

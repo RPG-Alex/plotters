@@ -16,7 +16,12 @@ pub struct Cartesian3d<X: Ranged, Y: Ranged, Z: Ranged> {
     projection: ProjectionMatrix,
 }
 
-impl<X: Ranged<ErrorType = MathError>, Y: Ranged<ErrorType = MathError>, Z: Ranged<ErrorType = MathError>> Cartesian3d<X, Y, Z> {
+impl<
+        X: Ranged<ErrorType = MathError>,
+        Y: Ranged<ErrorType = MathError>,
+        Z: Ranged<ErrorType = MathError>,
+    > Cartesian3d<X, Y, Z>
+{
     fn compute_default_size(actual_x: Range<i32>, actual_y: Range<i32>) -> i32 {
         (actual_x.end - actual_x.start).min(actual_y.end - actual_y.start) * 4 / 5
     }
@@ -105,7 +110,12 @@ impl<X: Ranged<ErrorType = MathError>, Y: Ranged<ErrorType = MathError>, Z: Rang
     }
 
     /// Do not project, only transform the guest coordinate system
-    pub fn map_3d(&self, x: &X::ValueType, y: &Y::ValueType, z: &Z::ValueType) -> Result<(i32, i32, i32), MathError> {
+    pub fn map_3d(
+        &self,
+        x: &X::ValueType,
+        y: &Y::ValueType,
+        z: &Z::ValueType,
+    ) -> Result<(i32, i32, i32), MathError> {
         Ok((
             self.logic_x.map(x, (0, self.coord_size.0))?,
             self.logic_y.map(y, (0, self.coord_size.1))?,
@@ -114,7 +124,12 @@ impl<X: Ranged<ErrorType = MathError>, Y: Ranged<ErrorType = MathError>, Z: Rang
     }
 
     /// Get the depth of the projection
-    pub fn projected_depth(&self, x: &X::ValueType, y: &Y::ValueType, z: &Z::ValueType) -> Result<i32, MathError> {
+    pub fn projected_depth(
+        &self,
+        x: &X::ValueType,
+        y: &Y::ValueType,
+        z: &Z::ValueType,
+    ) -> Result<i32, MathError> {
         Ok(self.projection.projected_depth(self.map_3d(x, y, z)?))
     }
 }
