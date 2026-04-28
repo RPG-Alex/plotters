@@ -155,6 +155,7 @@
     ![](https://plotters-rs.github.io/plotters-doc-data/element-3.png)
 */
 use plotters_backend::{BackendCoord, DrawingBackend, DrawingErrorKind};
+use serde::de::Error;
 use std::borrow::Borrow;
 
 mod basic_shapes;
@@ -268,8 +269,8 @@ pub struct BackendCoordOnly;
 
 impl CoordMapper for BackendCoordOnly {
     type Output = BackendCoord;
-    fn map<CT: CoordTranslate>(coord_trans: &CT, from: &CT::From, rect: &Rect) -> BackendCoord {
-        rect.truncate(coord_trans.translate(from))
+    fn map<CT: CoordTranslate>(coord_trans: &CT, from: &CT::From, rect: &Rect) -> Result<BackendCoord, Self::ErrorType> {
+        rect.truncate(coord_trans.translate(from)?)?
     }
 }
 
@@ -286,9 +287,9 @@ impl CoordMapper for BackendCoordAndZ {
         coord_trans: &CT,
         from: &CT::From,
         rect: &Rect,
-    ) -> (BackendCoord, i32) {
-        let coord = rect.truncate(coord_trans.translate(from));
+    ) -> Result<(BackendCoord, i32), Self:ErrorType> {
+        let coord = rect.truncate(coord_trans.translate(from)?);
         let z = coord_trans.depth(from);
-        (coord, z)
+        Ok((coord, z))
     }
 }

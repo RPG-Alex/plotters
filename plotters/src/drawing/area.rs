@@ -224,12 +224,12 @@ impl<DB: DrawingBackend, X: Ranged, Y: Ranged> DrawingArea<DB, Cartesian2d<X, Y>
     }
 
     /// Get the range of X of the backend coordinate for current drawing area
-    pub fn get_x_axis_pixel_range(&self) -> Range<i32> {
+    pub fn get_x_axis_pixel_range(&self) -> Result<Range<i32>, Self::ErrorType> {
         self.coord.get_x_axis_pixel_range()
     }
 
     /// Get the range of Y of the backend coordinate for current drawing area
-    pub fn get_y_axis_pixel_range(&self) -> Range<i32> {
+    pub fn get_y_axis_pixel_range(&self) -> Result<Range<i32>, Self::ErrorType> {
         self.coord.get_y_axis_pixel_range()
     }
 }
@@ -313,7 +313,7 @@ impl<DB: DrawingBackend, CT: CoordTranslate> DrawingArea<DB, CT> {
         pos: CT::From,
         color: &ColorType,
     ) -> Result<(), DrawingAreaError<DB>> {
-        let pos = self.coord.translate(&pos);
+        let pos = self.coord.translate(&pos)?;
         self.backend_ops(|b| b.draw_pixel(pos, color.to_backend_color()))
     }
 
@@ -337,7 +337,7 @@ impl<DB: DrawingBackend, CT: CoordTranslate> DrawingArea<DB, CT> {
     }
 
     /// Map coordinate to the backend coordinate
-    pub fn map_coordinate(&self, coord: &CT::From) -> BackendCoord {
+    pub fn map_coordinate(&self, coord: &CT::From) -> Result<BackendCoord, Self::ErrorType> {
         self.coord.translate(coord)
     }
 
