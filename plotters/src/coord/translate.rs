@@ -37,5 +37,6 @@ pub trait ReverseCoordTranslate: CoordTranslate {
     /// logic coordinate.
     /// Note: the return value is an option, because it's possible that the drawing
     /// coordinate isn't able to be represented in te guest coordinate system
-    fn reverse_translate(&self, input: BackendCoord) -> Result< Option<Self::From>, Self::ErrorType>;
+    fn reverse_translate(&self, input: BackendCoord)
+        -> Result<Option<Self::From>, Self::ErrorType>;
 }

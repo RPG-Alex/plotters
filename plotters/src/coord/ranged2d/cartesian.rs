@@ -53,28 +53,20 @@ impl<X: Ranged, Y: Ranged> Cartesian2d<X, Y> {
         h_limit: YH,
         v_limit: XH,
         mut draw_mesh: DrawMesh,
-    ) -> Result<(), E> {
+    ) -> Result<(), E>  where E: From<X::ErrorType> + From<Y::ErrorType> {
         let (xkp, ykp) = (
             self.logic_x.key_points(v_limit),
             self.logic_y.key_points(h_limit),
         );
 
         for logic_x in xkp {
-            let x = self.logic_x.map(&logic_x, self.back_x);
-            draw_mesh(MeshLine::XMesh(
-                (x?, self.back_y.0),
-                (x?, self.back_y.1),
-                &logic_x,
-            ))?;
+            let x = self.logic_x.map(&logic_x, self.back_x)?;
+            draw_mesh(MeshLine::XMesh((x, self.back_y.0),(x, self.back_x.1), &logic_x))?;
         }
 
         for logic_y in ykp {
-            let y = self.logic_y.map(&logic_y, self.back_y);
-            draw_mesh(MeshLine::YMesh(
-                (self.back_x.0, y?),
-                (self.back_x.1, y?),
-                &logic_y,
-            ))?;
+           let y = self.logic_y.map(&logic_y, self.back_y)?;
+           draw_mesh(MeshLine::YMesh((self.back_x.0, y), (self.back_x.1, y), &logic_y))?;
         }
 
         Ok(())
@@ -90,7 +82,7 @@ impl<X: Ranged, Y: Ranged> Cartesian2d<X, Y> {
         self.logic_y.range()
     }
 
-    /// Get the horizental backend coordinate range where X axis should be drawn
+    /// Get the horizontal backend coordinate range where X axis should be drawn
     pub fn get_x_axis_pixel_range(&self) -> Result<Range<i32>, <X as Ranged>::ErrorType> {
         self.logic_x.axis_pixel_range(self.back_x)
     }
@@ -111,22 +103,30 @@ impl<X: Ranged, Y: Ranged> Cartesian2d<X, Y> {
     }
 }
 
-impl<X: Ranged, Y: Ranged> CoordTranslate for Cartesian2d<X, Y> {
+impl<X: Ranged<ErrorType = MathError>, Y: Ranged<ErrorType = MathError>> CoordTranslate for Cartesian2d<X, Y> {
     type From = (X::ValueType, Y::ValueType);
     type ErrorType = MathError;
     fn translate(&self, from: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
-            let x = self.logic_x.map(&from.0, self.back_x)?;
-            let y = self.logic_y.map(&from.1, self.back_y)?;
-            Ok((x,y))
+        let x = self.logic_x.map(&from.0, self.back_x)?;
+        let y = self.logic_y.map(&from.1, self.back_y)?;
+        Ok((x, y))
     }
 }
 
-impl<X: ReversibleRanged, Y: ReversibleRanged> ReverseCoordTranslate for Cartesian2d<X, Y> {
-    fn reverse_translate(&self, input: BackendCoord) -> Result<Option<Self::From>, Self::ErrorType> {
-        Some((
-            self.logic_x.unmap(input.0, self.back_x)??,
-            self.logic_y.unmap(input.1, self.back_y)??,
-        ))
+impl<X: ReversibleRanged<ErrorType = MathError>, Y: ReversibleRanged<ErrorType = MathError>> ReverseCoordTranslate for Cartesian2d<X, Y> {
+    fn reverse_translate(
+        &self,
+        input: BackendCoord,
+    ) -> Result<Option<Self::From>, Self::ErrorType> {
+        let Some(x) = self.logic_x.unmap(input.0, self.back_x)? else {
+            return Ok(None);
+        };
+
+        let Some(y) = self.logic_y.unmap(input.1, self.back_y)? else {
+            return Ok(None);
+        };
+
+        Ok(Some((x, y)))
     }
 }
 

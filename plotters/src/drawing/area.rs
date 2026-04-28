@@ -145,7 +145,7 @@ pub enum DrawingAreaErrorKind<E: Error + Send + Sync> {
     /// The error caused by invalid layout
     LayoutError,
     /// The error is due math or an invalid value
-    Math(MathError)
+    Math(MathError),
 }
 
 impl<E: Error + Send + Sync> std::fmt::Display for DrawingAreaErrorKind<E> {
@@ -161,7 +161,7 @@ impl<E: Error + Send + Sync> std::fmt::Display for DrawingAreaErrorKind<E> {
     }
 }
 
-impl <E: Error + Send + Sync> From<MathError> for DrawingAreaErrorKind<E> {
+impl<E: Error + Send + Sync> From<MathError> for DrawingAreaErrorKind<E> {
     fn from(err: MathError) -> Self {
         DrawingAreaErrorKind::Math(err)
     }

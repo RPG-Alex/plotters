@@ -65,16 +65,31 @@ impl CoordTranslate for Shift {
     type From = BackendCoord;
     type ErrorType = MathError;
     fn translate(&self, from: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
-        let x = from.0.checked_add((self.0).0).ok_or(MathError::ValueOverflow)?;
-        let y = from.1.checked_add((self.0).1).ok_or(MathError::ValueOverflow)?;
-        Ok((x,y))
+        let x = from
+            .0
+            .checked_add((self.0).0)
+            .ok_or(MathError::ValueOverflow)?;
+        let y = from
+            .1
+            .checked_add((self.0).1)
+            .ok_or(MathError::ValueOverflow)?;
+        Ok((x, y))
     }
 }
 
 impl ReverseCoordTranslate for Shift {
-    fn reverse_translate(&self, input: BackendCoord) -> Result<Option<BackendCoord>, Self::ErrorType> {
-        let x = input.0.checked_sub((self.0).0).ok_or(MathError::ValueUnderflow)?;
-        let y = input.1.checked_sub((self.0).1).ok_or(MathError::ValueUnderflow)?;
-        Ok(Some((x,y)))
+    fn reverse_translate(
+        &self,
+        input: BackendCoord,
+    ) -> Result<Option<BackendCoord>, Self::ErrorType> {
+        let x = input
+            .0
+            .checked_sub((self.0).0)
+            .ok_or(MathError::ValueUnderflow)?;
+        let y = input
+            .1
+            .checked_sub((self.0).1)
+            .ok_or(MathError::ValueUnderflow)?;
+        Ok(Some((x, y)))
     }
 }

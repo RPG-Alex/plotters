@@ -154,23 +154,14 @@ where
             (pixel_span / size).round(),
             MathError::ValueOutOfRange,
         )?;
-        let upper = limit.1.checked_sub(margin).ok_or(MathError::ValueUnderflow)?;
+        let upper = limit
+            .1
+            .checked_sub(margin)
+            .ok_or(MathError::ValueUnderflow)?;
         match value {
-            SegmentValue::Exact(coord) => Ok(self.0.map(
-                coord,
-                (
-                    limit.0,
-                    upper,
-                ),
-            )?),
+            SegmentValue::Exact(coord) => Ok(self.0.map(coord, (limit.0, upper))?),
             SegmentValue::CenterOf(coord) => {
-                let left = self.0.map(
-                    coord,
-                    (
-                        limit.0,
-                        upper,
-                    ),
-                )?;
+                let left = self.0.map(coord, (limit.0, upper))?;
                 if let Some(idx) = self.0.index_of(coord) {
                     if idx.checked_add(1).ok_or(MathError::ValueOverflow)? < self.0.size() {
                         let right = self.0.map(
@@ -178,10 +169,7 @@ where
                                 .0
                                 .from_index(idx.checked_add(1).ok_or(MathError::ValueOverflow)?)
                                 .ok_or(MathError::ValueOutOfRange)?,
-                            (
-                                limit.0,
-                                upper,
-                            ),
+                            (limit.0, upper),
                         )?;
                         let mid = (i64::from(left) + i64::from(right)) / 2;
                         return Ok(mid as i32);
