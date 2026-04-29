@@ -1,4 +1,4 @@
-use super::{FontData, FontDataInternal};
+use super::{FontData, FontDataInternal, FontError};
 use crate::style::text_anchor::Pos;
 use crate::style::{Color, TextStyle};
 
@@ -6,10 +6,7 @@ use std::convert::From;
 
 pub use plotters_backend::{FontFamily, FontStyle, FontTransform};
 
-/// The error type for the font implementation
-pub type FontError = <FontDataInternal as FontData>::ErrorType;
-
-/// The type we used to represent a result of any font operations
+/// The type used to represent a result of any font operation.
 pub type FontResult<T> = Result<T, FontError>;
 
 /// Describes a font
@@ -153,7 +150,7 @@ impl<'a> FontDesc<'a> {
     /// and estimate the overall size of the font
     pub fn box_size(&self, text: &str) -> FontResult<(u32, u32)> {
         let ((min_x, min_y), (max_x, max_y)) = self.layout_box(text)?;
-        let (w, h) = self.get_transform().transform(max_x - min_x, max_y - min_y);
+        let (w, h) = self.get_transform().transform(max_x - min_x, max_y - min_y)?;
         Ok((w.unsigned_abs(), h.unsigned_abs()))
     }
 

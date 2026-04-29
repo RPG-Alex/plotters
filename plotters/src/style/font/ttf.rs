@@ -7,7 +7,6 @@ use lazy_static::lazy_static;
 
 use font_kit::{
     canvas::{Canvas, Format, RasterizationOptions},
-    error::{FontLoadingError, GlyphLoadingError},
     family_name::FamilyName,
     font::Font,
     handle::Handle,
@@ -21,36 +20,10 @@ use ttf_parser::{Face, GlyphId};
 use pathfinder_geometry::transform2d::Transform2F;
 use pathfinder_geometry::vector::{Vector2F, Vector2I};
 
-use super::{FontData, FontFamily, FontStyle, LayoutBox};
-
+use super::{FontData, FontFamily, FontStyle, LayoutBox, FontError};
 type FontResult<T> = Result<T, FontError>;
 
-#[derive(Debug, Clone)]
-pub enum FontError {
-    LockError,
-    NoSuchFont(String, String),
-    FontLoadError(Arc<FontLoadingError>),
-    GlyphError(Arc<GlyphLoadingError>),
-    FontHandleUnavailable,
-    FaceParseError(String),
-}
 
-impl std::fmt::Display for FontError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        match self {
-            FontError::LockError => write!(fmt, "Could not lock mutex"),
-            FontError::NoSuchFont(family, style) => {
-                write!(fmt, "No such font: {} {}", family, style)
-            }
-            FontError::FontLoadError(e) => write!(fmt, "Font loading error {}", e),
-            FontError::GlyphError(e) => write!(fmt, "Glyph error {}", e),
-            FontError::FontHandleUnavailable => write!(fmt, "Font handle is not available"),
-            FontError::FaceParseError(e) => write!(fmt, "Font face parse error {}", e),
-        }
-    }
-}
-
-impl std::error::Error for FontError {}
 
 lazy_static! {
     static ref DATA_CACHE: RwLock<HashMap<String, FontResult<Handle>>> =

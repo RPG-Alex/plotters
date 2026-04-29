@@ -31,7 +31,7 @@ impl Edge {
     }
 
     fn vertical_sweep(from: BackendCoord, to: BackendCoord) -> Result<Option<Edge>, MathError> {
-        Ok(Edge::horizontal_sweep((from.1, from.0), (to.1, to.0))?)
+        Edge::horizontal_sweep((from.1, from.0), (to.1, to.0))
     }
 
     fn get_master_pos(&self) -> i32 {
@@ -158,7 +158,7 @@ pub fn fill_polygon<DB: DrawingBackend, S: BackendStyle>(
                     Edge::horizontal_sweep(edges[idx].0, edges[idx].1)
                 } else {
                     Edge::vertical_sweep(edges[idx].0, edges[idx].1)
-                };
+                }?;
 
                 if let Some(edge_obj) = edge_obj {
                     active_edge.push(edge_obj);

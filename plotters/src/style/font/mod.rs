@@ -5,6 +5,8 @@
 //! to handle all the font issue.
 //!
 //! Thus we need different mechanism for the font implementation
+pub mod error;
+pub use error::FontError;
 
 #[cfg(all(
     not(all(target_arch = "wasm32", not(target_os = "wasi"))),

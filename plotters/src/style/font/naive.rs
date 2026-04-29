@@ -1,16 +1,5 @@
 use super::{FontData, FontFamily, FontStyle, LayoutBox};
 
-#[derive(Debug, Clone)]
-pub struct FontError;
-
-impl std::fmt::Display for FontError {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(fmt, "General Error")?;
-        Ok(())
-    }
-}
-
-impl std::error::Error for FontError {}
 
 #[derive(Clone)]
 pub struct FontDataInternal(String, String);

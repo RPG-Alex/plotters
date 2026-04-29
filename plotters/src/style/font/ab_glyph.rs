@@ -1,9 +1,7 @@
-use super::{FontData, FontFamily, FontStyle, LayoutBox};
+use super::{FontData, FontFamily, FontStyle, LayoutBox, FontError};
 use ab_glyph::{Font, FontRef, ScaleFont};
-use core::fmt::{self, Display};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::error::Error;
 use std::sync::RwLock;
 
 struct FontMap {
@@ -67,22 +65,6 @@ pub fn register_font(
 pub struct FontDataInternal {
     font_ref: FontRef<'static>,
 }
-
-#[derive(Debug, Clone)]
-pub enum FontError {
-    /// No idea what the problem is
-    Unknown,
-    /// No font data available for the requested family and style.
-    FontUnavailable,
-}
-impl Display for FontError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Since it makes literally no difference to how we'd format
-        // this, just delegate to the derived Debug formatter.
-        write!(f, "{:?}", self)
-    }
-}
-impl Error for FontError {}
 
 impl FontData for FontDataInternal {
     // TODO: can we rename this to `Error`?
