@@ -153,11 +153,7 @@ impl<'a> FontDesc<'a> {
     /// and estimate the overall size of the font
     pub fn box_size(&self, text: &str) -> FontResult<(u32, u32)> {
         let ((min_x, min_y), (max_x, max_y)) = self.layout_box(text)?;
-
-        let dx = max_x.checked_sub(min_x).ok_or(FontError::InvalidFontBox)?;
-        let dy = max_y.checked_sub(min_y).ok_or(FontError::InvalidFontBox)?;
-
-        let (w, h) = self.get_transform().transform(dx, dy);
+        let (w, h) = self.get_transform().transform(max_x - min_x, max_y - min_y);
         Ok((w.unsigned_abs(), h.unsigned_abs()))
     }
 

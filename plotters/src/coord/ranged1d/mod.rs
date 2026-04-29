@@ -198,11 +198,8 @@ pub trait Ranged {
     /// The type of this value in this range specification
     type ValueType;
 
-    /// The error type to return in a result.
-    type ErrorType;
-
     /// This function maps the value to i32, which is the drawing coordinate
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType>;
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32;
 
     /// This function gives the key points that we can draw a grid based on this
     fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<Self::ValueType>;
@@ -212,11 +209,11 @@ pub trait Ranged {
 
     /// This function provides the on-axis part of its range
     #[allow(clippy::range_plus_one)]
-    fn axis_pixel_range(&self, limit: (i32, i32)) -> Result<Range<i32>, Self::ErrorType> {
+    fn axis_pixel_range(&self, limit: (i32, i32)) -> Range<i32> {
         if limit.0 < limit.1 {
-            Ok(limit.0..limit.1)
+            limit.0..limit.1
         } else {
-            Ok(limit.1..limit.0)
+            limit.1..limit.0
         }
     }
 }
@@ -226,11 +223,7 @@ pub trait Ranged {
 /// logic value.
 pub trait ReversibleRanged: Ranged {
     /// Perform the reverse mapping
-    fn unmap(
-        &self,
-        input: i32,
-        limit: (i32, i32),
-    ) -> Result<Option<Self::ValueType>, Self::ErrorType>;
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<Self::ValueType>;
 }
 
 /// The trait for the type that can be converted into a ranged coordinate axis

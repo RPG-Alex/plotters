@@ -10,7 +10,6 @@ use crate::coord::{
 };
 use crate::drawing::DrawingAreaErrorKind;
 use crate::element::{EmptyElement, PathElement, Polygon, Text};
-use crate::math_errors::MathError;
 use crate::style::{
     text_anchor::{HPos, Pos, VPos},
     ShapeStyle, TextStyle,
@@ -70,18 +69,18 @@ where
             &axis[1][1],
             &axis[1][2],
         ]));
-        let axis_dir = (end?.0 - begin?.0, end?.1 - begin?.1);
+        let axis_dir = (end.0 - begin.0, end.1 - begin.1);
         let (x_range, y_range) = self.plotting_area().get_pixel_range();
         let x_mid = (x_range.start + x_range.end) / 2;
         let y_mid = (y_range.start + y_range.end) / 2;
 
-        let x_dir = if begin?.0 < x_mid {
+        let x_dir = if begin.0 < x_mid {
             (-tick_size, 0)
         } else {
             (tick_size, 0)
         };
 
-        let y_dir = if begin?.1 < y_mid {
+        let y_dir = if begin.1 < y_mid {
             (0, -tick_size)
         } else {
             (0, tick_size)
@@ -127,10 +126,6 @@ where
         [[Coord3D<X::ValueType, Y::ValueType, Z::ValueType>; 3]; 2],
         DrawingAreaErrorKind<DB::ErrorType>,
     > {
-        if idx >= 3 {
-            return Err(DrawingAreaErrorKind::LayoutError);
-        }
-
         let coord = self.plotting_area().as_coord_spec();
         let x_range = coord.logic_x.range();
         let y_range = coord.logic_y.range();
@@ -146,7 +141,7 @@ where
             let mut start = [&ranges[0][0], &ranges[1][0], &ranges[2][0]];
             let mut end = [&ranges[0][1], &ranges[1][1], &ranges[2][1]];
 
-            let mut best = None;
+            let mut plan = vec![];
 
             for i in 0..3 {
                 if i == idx {
@@ -154,48 +149,33 @@ where
                 }
                 start[i] = &panels[i][0][i];
                 end[i] = &panels[i][0][i];
-
                 for j in 0..3 {
                     if i != idx && i != j && j != idx {
                         for k in 0..2 {
-                            start[j] = &panels[i][k][i];
+                            start[j] = &panels[i][k][j];
                             end[j] = &panels[i][k][j];
-
-                            let d1 = coord.projected_depth(
-                                start[0].get_x(),
-                                start[1].get_y(),
-                                start[2].get_z(),
-                            );
-                            let d2 = coord.projected_depth(
-                                end[0].get_x(),
-                                end[1].get_y(),
-                                end[2].get_z(),
-                            );
-
-                            let depth_score = d1.checked_add(d2).ok_or(MathError::ValueOverflow)?;
-                            let (_, y1) = coord.translate(&Coord3D::build_coord(start))?;
-                            let (_, y2) = coord.translate(&Coord3D::build_coord(end))?;
-                            let y_score = y1.checked_add(y2).ok_or(MathError::ValueOverflow)?;
-                            let candidate = (start, end);
-                            let score = (depth_score, y_score);
-                            match best {
-                                None => best = Some((candidate, score)),
-                                Some((_, best_score)) if score < best_score => {
-                                    best = Some((candidate, score))
-                                }
-                                _ => {}
-                            }
+                            plan.push((start, end));
                         }
                     }
                 }
             }
-            best.map(|(candidate, _)| candidate)
-                .ok_or(DrawingAreaErrorKind::LayoutError)?
+            plan.into_iter()
+                .min_by_key(|&(s, e)| {
+                    let d = coord.projected_depth(s[0].get_x(), s[1].get_y(), s[2].get_z());
+                    let d = d + coord.projected_depth(e[0].get_x(), e[1].get_y(), e[2].get_z());
+                    let (_, y1) = coord.translate(&Coord3D::build_coord(s));
+                    let (_, y2) = coord.translate(&Coord3D::build_coord(e));
+                    let y = y1 + y2;
+                    (d, y)
+                })
+                .unwrap()
         };
+
         self.plotting_area().draw(&PathElement::new(
             vec![Coord3D::build_coord(start), Coord3D::build_coord(end)],
             style,
         ))?;
+
         Ok([
             [start[0].clone(), start[1].clone(), start[2].clone()],
             [end[0].clone(), end[1].clone(), end[2].clone()],

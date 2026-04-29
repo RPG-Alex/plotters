@@ -1,7 +1,6 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged, ValueFormatter,
 };
-use crate::math_errors::MathError;
 use std::ops::Range;
 
 /// Describe a value for a nested coordinate
@@ -67,10 +66,10 @@ where
     }
 }
 
-impl<P: DiscreteRanged, S: Ranged<ErrorType = MathError>> Ranged for NestedRange<P, S> {
+impl<P: DiscreteRanged, S: Ranged> Ranged for NestedRange<P, S> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = NestedValue<P::ValueType, S::ValueType>;
-    type ErrorType = MathError;
+
     fn range(&self) -> Range<Self::ValueType> {
         let primary_range = self.primary.range();
 
@@ -81,7 +80,7 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = MathError>> Ranged for NestedRange
             ..NestedValue::Value(primary_range.end, secondary_right)
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         let idx = self.primary.index_of(value.category()).unwrap_or(0);
         let total = self.primary.size();
 
@@ -98,11 +97,7 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = MathError>> Ranged for NestedRange
         if let Some(secondary_value) = value.nested_value() {
             self.secondary[idx].map(secondary_value, (s_left, s_right))
         } else {
-            let sum = s_left
-                .checked_add(s_right)
-                .ok_or(MathError::ValueOverflow)?;
-            let result = sum.checked_div(2).ok_or(MathError::ValueUnderflow)?;
-            Ok(result)
+            (s_left + s_right) / 2
         }
     }
 
@@ -134,9 +129,7 @@ impl<P: DiscreteRanged, S: Ranged<ErrorType = MathError>> Ranged for NestedRange
     }
 }
 
-impl<P: DiscreteRanged, S: DiscreteRanged<ErrorType = MathError>> DiscreteRanged
-    for NestedRange<P, S>
-{
+impl<P: DiscreteRanged, S: DiscreteRanged> DiscreteRanged for NestedRange<P, S> {
     fn size(&self) -> usize {
         self.secondary.iter().map(|x| x.size()).sum::<usize>()
     }
@@ -202,9 +195,9 @@ mod test {
         let range = coord.range();
 
         assert_eq!(NestedValue::Value(0, 0)..NestedValue::Value(10, 11), range);
-        assert_eq!(coord.map(&NestedValue::Category(0), (0, 1100))?, 50);
-        assert_eq!(coord.map(&NestedValue::Value(0, 0), (0, 1100))?, 0);
-        assert_eq!(coord.map(&NestedValue::Value(5, 4), (0, 1100))?, 567);
+        assert_eq!(coord.map(&NestedValue::Category(0), (0, 1100)), 50);
+        assert_eq!(coord.map(&NestedValue::Value(0, 0), (0, 1100)), 0);
+        assert_eq!(coord.map(&NestedValue::Value(5, 4), (0, 1100)), 567);
 
         assert_eq!(coord.size(), (2 + 12) * 11 / 2);
         assert_eq!(coord.index_of(&NestedValue::Value(5, 4)), Some(24));

@@ -1,16 +1,12 @@
 use std::convert::TryFrom;
 use std::ops::Range;
 
-use crate::math_errors::MathError;
-use crate::{
-    coord::{
-        combinators::WithKeyPoints,
-        ranged1d::{
-            AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-            Ranged, ReversibleRanged, ValueFormatter,
-        },
+use crate::coord::{
+    combinators::WithKeyPoints,
+    ranged1d::{
+        AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
+        Ranged, ReversibleRanged, ValueFormatter,
     },
-    math_guard::float_to_integer_checked,
 };
 
 macro_rules! impl_discrete_trait {
@@ -52,22 +48,20 @@ macro_rules! impl_ranged_type_trait {
 macro_rules! impl_reverse_mapping_trait {
     ($type:ty, $name: ident) => {
         impl ReversibleRanged for $name {
-            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Result<Option<$type>, MathError> {
+            fn unmap(&self, p: i32, (min, max): (i32, i32)) -> Option<$type> {
                 if p < min.min(max) || p > max.max(min) || min == max {
-                    return Ok(None);
+                    return None;
                 }
 
                 let logical_offset = f64::from(p - min) / f64::from(max - min);
 
-                return Ok(Some(
-                    ((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type,
-                ));
+                return Some(((self.1 - self.0) as f64 * logical_offset + self.0 as f64) as $type);
             }
         }
     };
 }
 macro_rules! make_numeric_coord {
-    ($type:ty, $error:ty, $name:ident, $key_points:ident, $doc: expr, $fmt: ident) => {
+    ($type:ty, $name:ident, $key_points:ident, $doc: expr, $fmt: ident) => {
         #[doc = $doc]
         #[derive(Clone)]
         pub struct $name($type, $type);
@@ -79,39 +73,35 @@ macro_rules! make_numeric_coord {
         impl Ranged for $name {
             type FormatOption = $fmt;
             type ValueType = $type;
-            type ErrorType = $error;
             #[allow(clippy::float_cmp)]
-            fn map(&self, v: &$type, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+            fn map(&self, v: &$type, limit: (i32, i32)) -> i32 {
                 // Corner case: If we have a range that have only one value,
                 // then we just assign everything to the only point
                 if self.1 == self.0 {
-                    let midpoint = (i64::from(limit.0) + i64::from(limit.1)) / 2;
-                    return Ok(midpoint as i32);
+                    return (limit.1 - limit.0) / 2;
                 }
 
                 let logic_length = (*v as f64 - self.0 as f64) / (self.1 as f64 - self.0 as f64);
-                if !logic_length.is_finite() {
-                    return Err(MathError::NonFiniteCalculation);
+
+                let actual_length = limit.1 - limit.0;
+
+                if actual_length == 0 {
+                    return limit.1;
                 }
 
-                let actual_length = (i64::from(limit.1) - i64::from(limit.0)) as f64;
-
-                if actual_length == 0.0 {
-                    return Ok(limit.1);
+                if logic_length.is_infinite() {
+                    if logic_length.is_sign_positive() {
+                        return limit.1;
+                    } else {
+                        return limit.0;
+                    }
                 }
 
-                let projected = if actual_length > 0.0 {
-                    (actual_length * logic_length + 1e-3).floor()
+                if actual_length > 0 {
+                    return limit.0 + (actual_length as f64 * logic_length + 1e-3).floor() as i32;
                 } else {
-                    (actual_length * logic_length - 1e-3).ceil()
-                };
-
-                let offset = float_to_integer_checked::<f64, i32, MathError>(
-                    projected,
-                    MathError::ValueOutOfRange,
-                )?;
-
-                limit.0.checked_add(offset).ok_or(MathError::ValueOverflow)
+                    return limit.0 + (actual_length as f64 * logic_length - 1e-3).ceil() as i32;
+                }
             }
             fn key_points<Hint: KeyPointHint>(&self, hint: Hint) -> Vec<$type> {
                 $key_points((self.0, self.1), hint.max_num_points())
@@ -121,8 +111,8 @@ macro_rules! make_numeric_coord {
             }
         }
     };
-    ($type:ty, $error:ty, $name:ident, $key_points:ident, $doc: expr) => {
-        make_numeric_coord!($type, $error, $name, $key_points, $doc, DefaultFormatting);
+    ($type:ty, $name:ident, $key_points:ident, $doc: expr) => {
+        make_numeric_coord!($type, $name, $key_points, $doc, DefaultFormatting);
     };
 }
 
@@ -264,7 +254,6 @@ gen_key_points_comp!(integer, compute_usize_key_points, usize);
 
 make_numeric_coord!(
     f32,
-    MathError,
     RangedCoordf32,
     compute_f32_key_points,
     "The ranged coordinate for type f32",
@@ -294,7 +283,6 @@ impl ValueFormatter<f32> for WithKeyPoints<RangedCoordf32> {
 
 make_numeric_coord!(
     f64,
-    MathError,
     RangedCoordf64,
     compute_f64_key_points,
     "The ranged coordinate for type f64",
@@ -323,56 +311,48 @@ impl ValueFormatter<f64> for WithKeyPoints<RangedCoordf64> {
 }
 make_numeric_coord!(
     u32,
-    MathError,
     RangedCoordu32,
     compute_u32_key_points,
     "The ranged coordinate for type u32"
 );
 make_numeric_coord!(
     i32,
-    MathError,
     RangedCoordi32,
     compute_i32_key_points,
     "The ranged coordinate for type i32"
 );
 make_numeric_coord!(
     u64,
-    MathError,
     RangedCoordu64,
     compute_u64_key_points,
     "The ranged coordinate for type u64"
 );
 make_numeric_coord!(
     i64,
-    MathError,
     RangedCoordi64,
     compute_i64_key_points,
     "The ranged coordinate for type i64"
 );
 make_numeric_coord!(
     u128,
-    MathError,
     RangedCoordu128,
     compute_u128_key_points,
     "The ranged coordinate for type u128"
 );
 make_numeric_coord!(
     i128,
-    MathError,
     RangedCoordi128,
     compute_i128_key_points,
     "The ranged coordinate for type i128"
 );
 make_numeric_coord!(
     usize,
-    MathError,
     RangedCoordusize,
     compute_usize_key_points,
     "The ranged coordinate for type usize"
 );
 make_numeric_coord!(
     isize,
-    MathError,
     RangedCoordisize,
     compute_isize_key_points,
     "The ranged coordinate for type isize"
@@ -421,10 +401,10 @@ mod test {
         assert_eq!(coord.key_points(11).len(), 11);
         assert_eq!(coord.key_points(11)[0], 0);
         assert_eq!(coord.key_points(11)[10], 20);
-        assert_eq!(coord.map(&5, (0, 100)), Ok(25));
+        assert_eq!(coord.map(&5, (0, 100)), 25);
 
         let coord: RangedCoordf32 = (0f32..20f32).into();
-        assert_eq!(coord.map(&5.0, (0, 100)), Ok(25));
+        assert_eq!(coord.map(&5.0, (0, 100)), 25);
     }
 
     #[test]
@@ -441,8 +421,8 @@ mod test {
     fn test_coord_unmap() {
         let coord: RangedCoordu32 = (0..20).into();
         let pos = coord.map(&5, (1000, 2000));
-        let value = coord.unmap(pos?, (1000, 2000));
-        assert_eq!(value, Ok(Some(5)));
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(5));
     }
 
     #[test]

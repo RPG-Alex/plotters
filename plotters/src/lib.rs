@@ -1,5 +1,4 @@
 #![warn(missing_docs)]
-#![warn(clippy::arithmetic_side_effects)]
 #![allow(clippy::type_complexity)]
 #![allow(clippy::doc_overindented_list_items)]
 #![cfg_attr(doc_cfg, feature(doc_cfg))]
@@ -797,11 +796,6 @@ pub mod drawing;
 pub mod element;
 pub mod series;
 pub mod style;
-
-/// Error handling for crate
-pub(crate) mod math_errors;
-/// used within crate for ensuring math done doesn't cause unexpected behavior (overflow/underflow etc)
-pub(crate) mod math_guard;
 
 /// Evaluation Context for Rust. See [the evcxr crate](https://crates.io/crates/evcxr) for more information.
 #[cfg(feature = "evcxr")]

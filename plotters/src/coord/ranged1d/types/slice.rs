@@ -1,8 +1,6 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, Ranged,
 };
-use crate::math_errors::MathError;
-use crate::math_guard::{float_to_integer_checked, non_zero_checked};
 use std::ops::Range;
 
 /// A range that is defined by a slice of values.
@@ -14,34 +12,23 @@ pub struct RangedSlice<'a, T: PartialEq>(&'a [T]);
 impl<'a, T: PartialEq> Ranged for RangedSlice<'a, T> {
     type FormatOption = DefaultFormatting;
     type ValueType = &'a T;
-    type ErrorType = MathError;
+
     fn range(&self) -> Range<&'a T> {
         // If inner slice is empty, we should always panic
         &self.0[0]..&self.0[self.0.len() - 1]
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, MathError> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         match self.0.iter().position(|x| &x == value) {
             Some(pos) => {
-                let pixel_span = (i64::from(limit.1) - i64::from(limit.0)) as f64;
-                let value_span = self
-                    .0
-                    .len()
-                    .checked_sub(1)
-                    .ok_or(MathError::ValueUnderflow)?;
-
-                let value_span =
-                    non_zero_checked::<usize, MathError>(value_span, MathError::ZeroDivision)?
-                        as f64;
-
-                let offset = float_to_integer_checked::<f64, i32, MathError>(
-                    pixel_span * (pos as f64 / value_span),
-                    MathError::ValueOutOfRange,
-                )?;
-
-                limit.0.checked_add(offset).ok_or(MathError::ValueOverflow)
+                let pixel_span = limit.1 - limit.0;
+                let value_span = self.0.len() - 1;
+                (f64::from(limit.0)
+                    + f64::from(pixel_span)
+                        * (f64::from(pos as u32) / f64::from(value_span as u32)))
+                .round() as i32
             }
-            None => Ok(limit.0),
+            None => limit.0,
         }
     }
 
@@ -98,7 +85,7 @@ mod test {
             slice_range.key_points(6),
             my_slice.iter().collect::<Vec<_>>()
         );
-        assert_eq!(slice_range.map(&&0, (0, 50)), Ok(30));
+        assert_eq!(slice_range.map(&&0, (0, 50)), 30);
     }
 
     #[test]

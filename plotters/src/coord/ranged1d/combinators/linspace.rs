@@ -278,12 +278,12 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T::ValueType;
-    type ErrorType = T::ErrorType;
+
     fn range(&self) -> Range<T::ValueType> {
         self.inner.range()
     }
 
-    fn map(&self, value: &T::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &T::ValueType, limit: (i32, i32)) -> i32 {
         self.inner.map(value, limit)
     }
 

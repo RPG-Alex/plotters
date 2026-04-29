@@ -32,9 +32,7 @@ pub struct ChartContext<'a, DB: DrawingBackend, CT: CoordTranslate> {
 
 impl<'a, DB: DrawingBackend, CT: ReverseCoordTranslate> ChartContext<'a, DB, CT> {
     /// Convert the chart context into an closure that can be used for coordinate translation
-    pub fn into_coord_trans(
-        self,
-    ) -> impl Fn(BackendCoord) -> Result<Option<CT::From>, CT::ErrorType> {
+    pub fn into_coord_trans(self) -> impl Fn(BackendCoord) -> Option<CT::From> {
         let coord_spec = self.drawing_area.into_coord_spec();
         move |coord| coord_spec.reverse_translate(coord)
     }

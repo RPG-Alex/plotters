@@ -64,8 +64,7 @@ impl<T, R: DiscreteRanged<ValueType = T> + ValueFormatter<T>> ValueFormatter<T> 
 impl<T: DiscreteRanged> Ranged for GroupBy<T> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T::ValueType;
-    type ErrorType = T::ErrorType;
-    fn map(&self, value: &T::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &T::ValueType, limit: (i32, i32)) -> i32 {
         self.0.map(value, limit)
     }
     fn range(&self) -> Range<T::ValueType> {

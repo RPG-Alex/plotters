@@ -142,9 +142,7 @@ impl<DB: DrawingBackend, CT1: CoordTranslate, CT2: ReverseCoordTranslate>
     DualCoordChartContext<'_, DB, CT1, CT2>
 {
     /// Convert the chart context into the secondary coordinate translation function
-    pub fn into_secondary_coord_trans(
-        self,
-    ) -> impl Fn(BackendCoord) -> Result<Option<CT2::From>, CT2::ErrorType> {
+    pub fn into_secondary_coord_trans(self) -> impl Fn(BackendCoord) -> Option<CT2::From> {
         let coord_spec = self.secondary.drawing_area.into_coord_spec();
         move |coord| coord_spec.reverse_translate(coord)
     }
@@ -158,8 +156,8 @@ impl<DB: DrawingBackend, CT1: ReverseCoordTranslate, CT2: ReverseCoordTranslate>
     pub fn into_coord_trans_pair(
         self,
     ) -> (
-        impl Fn(BackendCoord) -> Result<Option<CT1::From>, CT1::ErrorType>,
-        impl Fn(BackendCoord) -> Result<Option<CT2::From>, CT2::ErrorType>,
+        impl Fn(BackendCoord) -> Option<CT1::From>,
+        impl Fn(BackendCoord) -> Option<CT2::From>,
     ) {
         let coord_spec_1 = self.primary.drawing_area.into_coord_spec();
         let coord_spec_2 = self.secondary.drawing_area.into_coord_spec();

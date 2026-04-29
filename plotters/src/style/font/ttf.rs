@@ -33,7 +33,6 @@ pub enum FontError {
     GlyphError(Arc<GlyphLoadingError>),
     FontHandleUnavailable,
     FaceParseError(String),
-    InvalidFontBox,
 }
 
 impl std::fmt::Display for FontError {
@@ -47,7 +46,6 @@ impl std::fmt::Display for FontError {
             FontError::GlyphError(e) => write!(fmt, "Glyph error {}", e),
             FontError::FontHandleUnavailable => write!(fmt, "Font handle is not available"),
             FontError::FaceParseError(e) => write!(fmt, "Font face parse error {}", e),
-            FontError::InvalidFontBox => write!(fmt, "Font Box is Invalid"),
         }
     }
 }
@@ -81,7 +79,9 @@ impl Drop for FontExt {
 
 impl FontExt {
     fn new(font: Font) -> FontResult<Self> {
-        let handle = font.handle().ok_or(FontError::FontHandleUnavailable)?;
+        let handle = font
+            .handle()
+            .ok_or(FontError::FontHandleUnavailable)?;
         let face = match handle {
             Handle::Memory { bytes, font_index } => {
                 let face = ttf_parser::Face::parse(bytes.as_slice(), font_index)

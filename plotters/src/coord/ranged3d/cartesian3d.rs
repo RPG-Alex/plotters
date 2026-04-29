@@ -1,7 +1,6 @@
 use super::{ProjectionMatrix, ProjectionMatrixBuilder};
 use crate::coord::ranged1d::Ranged;
 use crate::coord::CoordTranslate;
-use crate::math_errors::MathError;
 use plotters_backend::BackendCoord;
 
 use std::ops::Range;
@@ -16,12 +15,7 @@ pub struct Cartesian3d<X: Ranged, Y: Ranged, Z: Ranged> {
     projection: ProjectionMatrix,
 }
 
-impl<
-        X: Ranged<ErrorType = MathError>,
-        Y: Ranged<ErrorType = MathError>,
-        Z: Ranged<ErrorType = MathError>,
-    > Cartesian3d<X, Y, Z>
-{
+impl<X: Ranged, Y: Ranged, Z: Ranged> Cartesian3d<X, Y, Z> {
     fn compute_default_size(actual_x: Range<i32>, actual_y: Range<i32>) -> i32 {
         (actual_x.end - actual_x.start).min(actual_y.end - actual_y.start) * 4 / 5
     }
@@ -110,39 +104,28 @@ impl<
     }
 
     /// Do not project, only transform the guest coordinate system
-    pub fn map_3d(
-        &self,
-        x: &X::ValueType,
-        y: &Y::ValueType,
-        z: &Z::ValueType,
-    ) -> Result<(i32, i32, i32), MathError> {
-        Ok((
-            self.logic_x.map(x, (0, self.coord_size.0))?,
-            self.logic_y.map(y, (0, self.coord_size.1))?,
-            self.logic_z.map(z, (0, self.coord_size.2))?,
-        ))
+    pub fn map_3d(&self, x: &X::ValueType, y: &Y::ValueType, z: &Z::ValueType) -> (i32, i32, i32) {
+        (
+            self.logic_x.map(x, (0, self.coord_size.0)),
+            self.logic_y.map(y, (0, self.coord_size.1)),
+            self.logic_z.map(z, (0, self.coord_size.2)),
+        )
     }
 
     /// Get the depth of the projection
-    pub fn projected_depth(
-        &self,
-        x: &X::ValueType,
-        y: &Y::ValueType,
-        z: &Z::ValueType,
-    ) -> Result<i32, MathError> {
-        Ok(self.projection.projected_depth(self.map_3d(x, y, z)?))
+    pub fn projected_depth(&self, x: &X::ValueType, y: &Y::ValueType, z: &Z::ValueType) -> i32 {
+        self.projection.projected_depth(self.map_3d(x, y, z))
     }
 }
 
 impl<X: Ranged, Y: Ranged, Z: Ranged> CoordTranslate for Cartesian3d<X, Y, Z> {
     type From = (X::ValueType, Y::ValueType, Z::ValueType);
-    type ErrorType = MathError;
-    fn translate(&self, coord: &Self::From) -> Result<BackendCoord, Self::ErrorType> {
-        let pixel_coord_3d = self.map_3d(&coord.0, &coord.1, &coord.2)?;
-        Ok(&self.projection * pixel_coord_3d)
+    fn translate(&self, coord: &Self::From) -> BackendCoord {
+        let pixel_coord_3d = self.map_3d(&coord.0, &coord.1, &coord.2);
+        self.projection * pixel_coord_3d
     }
 
-    fn depth(&self, coord: &Self::From) -> Result<i32, Self::ErrorType> {
+    fn depth(&self, coord: &Self::From) -> i32 {
         self.projected_depth(&coord.0, &coord.1, &coord.2)
     }
 }

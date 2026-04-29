@@ -2,7 +2,6 @@ use crate::coord::ranged1d::types::RangedCoordf64;
 use crate::coord::ranged1d::{
     AsRangedCoord, DefaultFormatting, KeyPointHint, Ranged, ReversibleRanged,
 };
-use crate::math_errors::MathError;
 use std::marker::PhantomData;
 use std::ops::Range;
 
@@ -82,12 +81,14 @@ impl<T: LogScalable> IntoLogRange for Range<T> {
 }
 
 impl<V: LogScalable> ReversibleRanged for LogCoord<V> {
-    fn unmap(&self, input: i32, limit: (i32, i32)) -> Result<Option<V>, Self::ErrorType> {
-        self.linear
-            .unmap(input, limit)
-            .map(|value_ln| value_ln.map(|value_ln| self.f64_to_value(value_ln.exp())))
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<V> {
+        self.linear.unmap(input, limit).map(|value_ln| {
+            let fv = value_ln.exp();
+            self.f64_to_value(fv)
+        })
     }
 }
+
 /// The logarithmic coordinate decorator.
 /// This decorator is used to make the axis rendered as logarithmically.
 #[derive(Clone)]
@@ -199,8 +200,8 @@ impl<V: LogScalable> LogCoord<V> {
 impl<V: LogScalable> Ranged for LogCoord<V> {
     type FormatOption = DefaultFormatting;
     type ValueType = V;
-    type ErrorType = MathError;
-    fn map(&self, value: &V, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+
+    fn map(&self, value: &V, limit: (i32, i32)) -> i32 {
         let fv = self.value_to_f64(value);
         let value_ln = fv.ln();
         self.linear.map(&value_ln, limit)

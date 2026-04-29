@@ -9,15 +9,14 @@ use crate::coord::{
     Shift,
 };
 use crate::drawing::DrawingArea;
-use crate::math_errors::MathError;
 
 mod draw_impl;
 
 impl<'a, DB, XT, YT, X, Y> ChartContext<'a, DB, Cartesian2d<X, Y>>
 where
     DB: DrawingBackend,
-    X: Ranged<ValueType = XT, ErrorType = MathError> + ValueFormatter<XT>,
-    Y: Ranged<ValueType = YT, ErrorType = MathError> + ValueFormatter<YT>,
+    X: Ranged<ValueType = XT> + ValueFormatter<XT>,
+    Y: Ranged<ValueType = YT> + ValueFormatter<YT>,
 {
     pub(crate) fn is_overlapping_drawing_area(
         &self,
@@ -47,13 +46,7 @@ where
     }
 }
 
-impl<
-        'a,
-        DB: DrawingBackend,
-        X: Ranged<ErrorType = MathError>,
-        Y: Ranged<ErrorType = MathError>,
-    > ChartContext<'a, DB, Cartesian2d<X, Y>>
-{
+impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesian2d<X, Y>> {
     /// Get the range of X axis
     pub fn x_range(&self) -> Range<X::ValueType> {
         self.drawing_area.get_x_range()
@@ -66,21 +59,12 @@ impl<
 
     /// Maps the coordinate to the backend coordinate. This is typically used
     /// with an interactive chart.
-    pub fn backend_coord(
-        &self,
-        coord: &(X::ValueType, Y::ValueType),
-    ) -> Result<BackendCoord, MathError> {
+    pub fn backend_coord(&self, coord: &(X::ValueType, Y::ValueType)) -> BackendCoord {
         self.drawing_area.map_coordinate(coord)
     }
 }
 
-impl<
-        'a,
-        DB: DrawingBackend,
-        X: Ranged<ErrorType = MathError>,
-        Y: Ranged<ErrorType = MathError>,
-    > ChartContext<'a, DB, Cartesian2d<X, Y>>
-{
+impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesian2d<X, Y>> {
     /// Convert this chart context into a dual axis chart context and attach a second coordinate spec
     /// on the chart context. For more detailed information, see documentation for [struct DualCoordChartContext](struct.DualCoordChartContext.html)
     ///
@@ -97,11 +81,7 @@ impl<
         DB,
         Cartesian2d<X, Y>,
         Cartesian2d<SX::CoordDescType, SY::CoordDescType>,
-    >
-    where
-        SX::CoordDescType: Ranged<ErrorType = MathError>,
-        SY::CoordDescType: Ranged<ErrorType = MathError>,
-    {
+    > {
         let mut pixel_range = self.drawing_area.get_pixel_range();
         pixel_range.1 = pixel_range.1.end..pixel_range.1.start;
 

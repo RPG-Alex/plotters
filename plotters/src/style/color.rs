@@ -169,10 +169,10 @@ impl HSLColor {
         if !h.is_finite() {
             return Err(HSLColorError::NonFiniteHue);
         }
-        if !s.is_finite() || !(0.0..=1.0).contains(&s) {
+        if !s.is_finite() || s < 0.0 || s > 1.0 {
             return Err(HSLColorError::SaturationOutOfRange);
         }
-        if !l.is_finite() || !(0.0..=1.0).contains(&l) {
+        if !l.is_finite() || l < 0.0 || l > 1.0 {
             return Err(HSLColorError::LightnessOutOfRange);
         }
         Ok(Self(h, s, l))
@@ -277,18 +277,12 @@ mod hue_robustness_tests {
             .rgb;
         assert_eq!(normalized, via_helper);
 
-        let wrap_positive = HSLColor::from_degrees(720.0, 1.0, 0.5)
-            .unwrap()
-            .to_backend_color()
-            .rgb;
-        let wrap_negative = HSLColor::from_degrees(-120.0, 1.0, 0.5)
-            .unwrap()
-            .to_backend_color()
-            .rgb;
-        let canonical = HSLColor::from_degrees(0.0, 1.0, 0.5)
-            .unwrap()
-            .to_backend_color()
-            .rgb;
+        let wrap_positive =
+            HSLColor::from_degrees(720.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
+        let wrap_negative =
+            HSLColor::from_degrees(-120.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
+        let canonical =
+            HSLColor::from_degrees(0.0, 1.0, 0.5).unwrap().to_backend_color().rgb;
 
         assert_eq!(wrap_positive, canonical);
         assert_eq!(

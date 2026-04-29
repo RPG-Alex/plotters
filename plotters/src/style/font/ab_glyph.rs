@@ -2,11 +2,9 @@ use super::{FontData, FontFamily, FontStyle, LayoutBox};
 use ab_glyph::{Font, FontRef, ScaleFont};
 use core::fmt::{self, Display};
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 use std::error::Error;
 use std::sync::RwLock;
-use std::{collections::HashMap, convert::TryFrom};
-
-use crate::math_guard::{float_to_integer_checked, try_convert_float};
 
 struct FontMap {
     map: HashMap<String, FontRef<'static>>,
@@ -70,14 +68,12 @@ pub struct FontDataInternal {
     font_ref: FontRef<'static>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum FontError {
     /// No idea what the problem is
     Unknown,
     /// No font data available for the requested family and style.
     FontUnavailable,
-    /// Metrics passed are out of a valid and safe range
-    InvalidMetrics,
 }
 impl Display for FontError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -130,15 +126,10 @@ impl FontData for FontDataInternal {
         text: &str,
         mut draw: DrawFunc,
     ) -> Result<Result<(), E>, Self::ErrorType> {
-        let metric_error = FontError::InvalidMetrics;
-        let size = try_convert_float::<f64, f32, Self::ErrorType>(size, metric_error)?;
-        let font = self.font_ref.as_scaled(size);
-
+        let font = self.font_ref.as_scaled(size as f32);
         let mut draw = |x: i32, y: i32, c| {
             let (base_x, base_y) = pos;
-            let add_x = x.checked_add(base_x).ok_or(metric_error)?;
-            let add_y = y.checked_add(base_y).ok_or(metric_error)?;
-            draw(add_x, add_y, c).map_err(|_| FontError::Unknown)
+            draw(base_x + x, base_y + y, c)
         };
         let mut x_shift = 0f32;
         let mut prev = None;
@@ -150,18 +141,12 @@ impl FontData for FontDataInternal {
             let glyph = font.scaled_glyph(c);
             if let Some(q) = font.outline_glyph(glyph) {
                 let rect = q.px_bounds();
-                let y_div = size / 2.0 + rect.min.y;
-                let y_shift =
-                    float_to_integer_checked::<f32, i32, Self::ErrorType>(y_div, metric_error)?;
+                let y_shift = ((size as f32) / 2.0 + rect.min.y) as i32;
                 let x_shift = x_shift as i32;
                 let mut buf = vec![];
                 q.draw(|x, y, c| buf.push((x, y, c)));
                 for (x, y, c) in buf {
-                    let x = i32::try_from(x).map_err(|_| metric_error)?;
-                    let x_val = x.checked_add(x_shift).ok_or(metric_error)?;
-                    let y = i32::try_from(y).map_err(|_| metric_error)?;
-                    let y_val = y.checked_add(y_shift).ok_or(metric_error)?;
-                    draw(x_val, y_val, c).map_err(|_e| {
+                    draw(x as i32 + x_shift, y as i32 + y_shift, c).map_err(|_e| {
                         // Note: If ever `plotters` adds a tracing or logging crate,
                         // this would be a good place to use it.
                         FontError::Unknown

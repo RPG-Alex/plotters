@@ -185,7 +185,7 @@ impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesia
         let right_align_width = (min_width * 2).min(max_width);
 
         /* Then we need to draw the tick mark and the label */
-        for ((p, t), w) in labels.iter().zip(label_width) {
+        for ((p, t), w) in labels.iter().zip(label_width.into_iter()) {
             /* Make sure we are actually in the visible range */
             let rp = if orientation.0 == 0 { *p - x0 } else { *p - y0 };
 
@@ -240,9 +240,13 @@ impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesia
                     let ymax = th as i32 - 1;
                     let (kx0, ky0, kx1, ky1) = match orientation {
                         (dx, dy) if dx > 0 && dy == 0 => (0, *p - y0, tick_size, *p - y0),
-                        (dx, dy) if dx < 0 && dy == 0 => (xmax - tick_size, *p - y0, xmax, *p - y0),
+                        (dx, dy) if dx < 0 && dy == 0 => {
+                            (xmax - tick_size, *p - y0, xmax, *p - y0)
+                        }
                         (dx, dy) if dx == 0 && dy > 0 => (*p - x0, 0, *p - x0, tick_size),
-                        (dx, dy) if dx == 0 && dy < 0 => (*p - x0, ymax - tick_size, *p - x0, ymax),
+                        (dx, dy) if dx == 0 && dy < 0 => {
+                            (*p - x0, ymax - tick_size, *p - x0, ymax)
+                        }
                         _ => panic!("Bug: Invalid orientation specification"),
                     };
                     let line = PathElement::new(vec![(kx0, ky0), (kx1, ky1)], *style);
@@ -344,7 +348,10 @@ impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesia
                 for (px, _) in &x_labels {
                     let x = *px - x0;
                     if x >= 0 && x < dw {
-                        let line = PathElement::new(vec![(x, 0), (x, abs_tick)], *axis_style);
+                        let line = PathElement::new(
+                            vec![(x, 0), (x, abs_tick)],
+                            *axis_style,
+                        );
                         plot_area.draw(&line)?;
                     }
                 }
@@ -373,7 +380,10 @@ impl<'a, DB: DrawingBackend, X: Ranged, Y: Ranged> ChartContext<'a, DB, Cartesia
                 for (py, _) in &y_labels {
                     let y = *py - y0;
                     if y >= 0 && y < dh {
-                        let line = PathElement::new(vec![(0, y), (abs_tick, y)], *axis_style);
+                        let line = PathElement::new(
+                            vec![(0, y), (abs_tick, y)],
+                            *axis_style,
+                        );
                         plot_area.draw(&line)?;
                     }
                 }

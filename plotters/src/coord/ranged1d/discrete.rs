@@ -1,8 +1,6 @@
 use crate::coord::ranged1d::{
     AsRangedCoord, KeyPointHint, NoDefaultFormatting, Ranged, ReversibleRanged, ValueFormatter,
 };
-use crate::math_errors::MathError;
-use crate::math_guard::{float_to_integer_checked, non_zero_checked};
 use std::ops::Range;
 
 /// The trait indicates the coordinate is discrete
@@ -138,47 +136,29 @@ where
     }
 }
 
-impl<D: DiscreteRanged> Ranged for SegmentedCoord<D>
-where
-    MathError: From<<D as Ranged>::ErrorType>,
-{
+impl<D: DiscreteRanged> Ranged for SegmentedCoord<D> {
     type FormatOption = NoDefaultFormatting;
     type ValueType = SegmentValue<D::ValueType>;
-    type ErrorType = MathError;
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
-        let pixel_span = (i64::from(limit.1) - i64::from(limit.0)) as f64;
-        let size =
-            non_zero_checked::<usize, MathError>(self.0.size(), MathError::ZeroDivision)? as f64;
-        let margin = float_to_integer_checked::<f64, i32, MathError>(
-            (pixel_span / size).round(),
-            MathError::ValueOutOfRange,
-        )?;
-        let upper = limit
-            .1
-            .checked_sub(margin)
-            .ok_or(MathError::ValueUnderflow)?;
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+        let margin = ((limit.1 - limit.0) as f32 / self.0.size() as f32).round() as i32;
+
         match value {
-            SegmentValue::Exact(coord) => Ok(self.0.map(coord, (limit.0, upper))?),
+            SegmentValue::Exact(coord) => self.0.map(coord, (limit.0, limit.1 - margin)),
             SegmentValue::CenterOf(coord) => {
-                let left = self.0.map(coord, (limit.0, upper))?;
+                let left = self.0.map(coord, (limit.0, limit.1 - margin));
                 if let Some(idx) = self.0.index_of(coord) {
-                    if idx.checked_add(1).ok_or(MathError::ValueOverflow)? < self.0.size() {
+                    if idx + 1 < self.0.size() {
                         let right = self.0.map(
-                            &self
-                                .0
-                                .from_index(idx.checked_add(1).ok_or(MathError::ValueOverflow)?)
-                                .ok_or(MathError::ValueOutOfRange)?,
-                            (limit.0, upper),
-                        )?;
-                        let mid = (i64::from(left) + i64::from(right)) / 2;
-                        return Ok(mid as i32);
+                            &self.0.from_index(idx + 1).unwrap(),
+                            (limit.0, limit.1 - margin),
+                        );
+                        return (left + right) / 2;
                     }
                 }
-                let pos = (i64::from(left) + i64::from(margin)) / 2;
-                Ok(pos as i32)
+                left + margin / 2
             }
-            SegmentValue::Last => Ok(limit.1),
+            SegmentValue::Last => limit.1,
         }
     }
 
@@ -196,10 +176,7 @@ where
     }
 }
 
-impl<D: DiscreteRanged> DiscreteRanged for SegmentedCoord<D>
-where
-    MathError: From<<D as Ranged>::ErrorType>,
-{
+impl<D: DiscreteRanged> DiscreteRanged for SegmentedCoord<D> {
     fn size(&self) -> usize {
         self.0.size() + 1
     }
@@ -228,14 +205,10 @@ impl<T> From<T> for SegmentValue<T> {
 }
 
 impl<DC: DiscreteRanged> ReversibleRanged for DC {
-    fn unmap(
-        &self,
-        input: i32,
-        limit: (i32, i32),
-    ) -> Result<Option<Self::ValueType>, Self::ErrorType> {
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<Self::ValueType> {
         let idx = (f64::from(input - limit.0) * (self.size() as f64) / f64::from(limit.1 - limit.0))
             .floor() as usize;
-        Ok(self.from_index(idx))
+        self.from_index(idx)
     }
 }
 
@@ -294,8 +267,8 @@ mod test {
             }
         }
 
-        assert_eq!(coord.map(&SegmentValue::CenterOf(0), (0, 24)), Ok(1));
-        assert_eq!(coord.map(&SegmentValue::Exact(0), (0, 24)), Ok(0));
-        assert_eq!(coord.map(&SegmentValue::Exact(1), (0, 24)), Ok(2));
+        assert_eq!(coord.map(&SegmentValue::CenterOf(0), (0, 24)), 1);
+        assert_eq!(coord.map(&SegmentValue::Exact(0), (0, 24)), 0);
+        assert_eq!(coord.map(&SegmentValue::Exact(1), (0, 24)), 2);
     }
 }

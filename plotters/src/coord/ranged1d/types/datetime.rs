@@ -2,13 +2,9 @@
 use chrono::{Date, DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, TimeZone, Timelike};
 use std::ops::{Add, Range, Sub};
 
-use crate::math_errors::MathError;
-use crate::{
-    coord::ranged1d::{
-        AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting,
-        Ranged, ReversibleRanged, ValueFormatter,
-    },
-    math_guard::{float_to_integer_checked, non_zero_checked},
+use crate::coord::ranged1d::{
+    AsRangedCoord, DefaultFormatting, DiscreteRanged, KeyPointHint, NoDefaultFormatting, Ranged,
+    ReversibleRanged, ValueFormatter,
 };
 
 /// The trait that describe some time value. This is the uniformed abstraction that works
@@ -32,43 +28,25 @@ pub trait TimeValue: Eq + Sized {
     fn from_date(date: Self::DateType) -> Self;
 
     /// Map the coord spec
-    fn map_coord(
-        value: &Self,
-        begin: &Self,
-        end: &Self,
-        limit: (i32, i32),
-    ) -> Result<i32, MathError> {
+    fn map_coord(value: &Self, begin: &Self, end: &Self, limit: (i32, i32)) -> i32 {
         let total_span = end.subtract(begin);
         let value_span = value.subtract(begin);
-        // Calculate the pixel span cast into i64 to avoid under flowing.
-        let pixel_span = (limit.1 as i64 - limit.0 as i64) as f64;
+
         // First, lets try the nanoseconds precision
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
-                let value_ns = value_ns as f64;
-                let total_ns =
-                    non_zero_checked::<i64, MathError>(total_ns, MathError::ZeroDivision)? as f64;
-
-                let result = float_to_integer_checked::<f64, i32, MathError>(
-                    pixel_span * value_ns / total_ns,
-                    MathError::ValueOutOfRange,
-                )?;
-                return result.checked_add(limit.0).ok_or(MathError::ValueOverflow);
+                return (f64::from(limit.1 - limit.0) * value_ns as f64 / total_ns as f64) as i32
+                    + limit.0;
             }
         }
 
         // Yes, converting them to floating point may lose precision, but this is Ok.
         // If it overflows, it means we have a time span nearly 300 years, we are safe to ignore the
         // portion less than 1 day.
-        let total_days =
-            non_zero_checked::<i64, MathError>(total_span.num_days(), MathError::ZeroDivision)?
-                as f64;
+        let total_days = total_span.num_days() as f64;
         let value_days = value_span.num_days() as f64;
-        let result = float_to_integer_checked::<f64, i32, MathError>(
-            pixel_span * value_days / total_days,
-            MathError::ValueOutOfRange,
-        )?;
-        result.checked_add(limit.0).ok_or(MathError::ValueOverflow)
+
+        (f64::from(limit.1 - limit.0) * value_days / total_days) as i32 + limit.0
     }
 
     /// Map pixel to coord spec
@@ -234,13 +212,12 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = D;
-    type ErrorType = MathError;
 
     fn range(&self) -> Range<D> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, MathError> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -425,13 +402,12 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = MathError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         T::map_coord(value, &self.0.start, &self.0.end, limit)
     }
 
@@ -553,13 +529,12 @@ where
 {
     type FormatOption = NoDefaultFormatting;
     type ValueType = T;
-    type ErrorType = MathError;
 
     fn range(&self) -> Range<T> {
         self.0.start.clone()..self.0.end.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         T::map_coord(value, &self.0.start, &self.0.end, limit)
     }
 
@@ -681,13 +656,12 @@ where
 {
     type FormatOption = DefaultFormatting;
     type ValueType = DT;
-    type ErrorType = MathError;
 
     fn range(&self) -> Range<DT> {
         self.0.clone()..self.1.clone()
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
         TimeValue::map_coord(value, &self.0, &self.1, limit)
     }
 
@@ -739,13 +713,8 @@ where
     RangedDate<DT::DateType>: Ranged<ValueType = DT::DateType>,
 {
     /// Perform the reverse mapping
-    fn unmap(
-        &self,
-        input: i32,
-        limit: (i32, i32),
-    ) -> Result<Option<Self::ValueType>, Self::ErrorType> {
-        let value = Some(TimeValue::unmap_coord(input, &self.0, &self.1, limit));
-        Ok(value)
+    fn unmap(&self, input: i32, limit: (i32, i32)) -> Option<Self::ValueType> {
+        Some(TimeValue::unmap_coord(input, &self.0, &self.1, limit))
     }
 }
 
@@ -767,48 +736,29 @@ impl From<Range<Duration>> for RangedDuration {
 impl Ranged for RangedDuration {
     type FormatOption = DefaultFormatting;
     type ValueType = Duration;
-    type ErrorType = MathError;
 
     fn range(&self) -> Range<Duration> {
         self.0..self.1
     }
 
-    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> Result<i32, Self::ErrorType> {
-        let total_span = self
-            .1
-            .checked_sub(&self.0)
-            .ok_or(MathError::ValueUnderflow)?;
-        let value_span = value
-            .checked_sub(&self.0)
-            .ok_or(MathError::ValueUnderflow)?;
-
-        let limit_difference = (i64::from(limit.1) - i64::from(limit.0)) as f64;
-        let offset = 1e-10;
+    fn map(&self, value: &Self::ValueType, limit: (i32, i32)) -> i32 {
+        let total_span = self.1 - self.0;
+        let value_span = *value - self.0;
 
         if let Some(total_ns) = total_span.num_nanoseconds() {
             if let Some(value_ns) = value_span.num_nanoseconds() {
-                let value_ns = value_ns as f64;
-                let total_ns =
-                    non_zero_checked::<i64, MathError>(total_ns, MathError::ZeroDivision)? as f64;
-                let result = float_to_integer_checked::<f64, i32, MathError>(
-                    limit_difference * value_ns / total_ns + offset,
-                    MathError::ValueOutOfRange,
-                )?;
-                return limit.0.checked_add(result).ok_or(MathError::ValueOverflow);
+                return limit.0
+                    + (f64::from(limit.1 - limit.0) * value_ns as f64 / total_ns as f64 + 1e-10)
+                        as i32;
             }
-            return Ok(limit.1);
+            return limit.1;
         }
 
-        let value_days = value_span.num_days() as f64;
-        let total_days =
-            non_zero_checked::<i64, MathError>(total_span.num_days(), MathError::ZeroDivision)?
-                as f64;
+        let total_days = total_span.num_days();
+        let value_days = value_span.num_days();
 
-        let result = float_to_integer_checked::<f64, i32, MathError>(
-            limit_difference * value_days / total_days + offset,
-            MathError::ValueOutOfRange,
-        )?;
-        limit.0.checked_add(result).ok_or(MathError::ValueOverflow)
+        limit.0
+            + (f64::from(limit.1 - limit.0) * value_days as f64 / total_days as f64 + 1e-10) as i32
     }
 
     fn key_points<HintType: KeyPointHint>(&self, hint: HintType) -> Vec<Self::ValueType> {
@@ -959,8 +909,8 @@ mod test {
 
         let ranged_coord = Into::<RangedDate<_>>::into(range);
 
-        assert_eq!(ranged_coord.map(&Utc.ymd(1000, 8, 10), (0, 100)), Ok(0));
-        assert_eq!(ranged_coord.map(&Utc.ymd(2999, 8, 10), (0, 100)), Ok(100));
+        assert_eq!(ranged_coord.map(&Utc.ymd(1000, 8, 10), (0, 100)), 0);
+        assert_eq!(ranged_coord.map(&Utc.ymd(2999, 8, 10), (0, 100)), 100);
 
         let kps = ranged_coord.key_points(23);
 
@@ -1029,8 +979,8 @@ mod test {
         let range = Utc.ymd(1000, 8, 5)..Utc.ymd(2999, 1, 1);
         let ranged_coord = range.yearly();
 
-        assert_eq!(ranged_coord.map(&Utc.ymd(1000, 8, 10), (0, 100)), Ok(0));
-        assert_eq!(ranged_coord.map(&Utc.ymd(2999, 8, 10), (0, 100)), Ok(100));
+        assert_eq!(ranged_coord.map(&Utc.ymd(1000, 8, 10), (0, 100)), 0);
+        assert_eq!(ranged_coord.map(&Utc.ymd(2999, 8, 10), (0, 100)), 100);
 
         let kps = ranged_coord.key_points(23);
 
@@ -1091,11 +1041,11 @@ mod test {
 
         assert_eq!(
             coord.map(&Utc.ymd(1000, 1, 1).and_hms(0, 0, 0), (0, 100)),
-            Ok(0)
+            0
         );
         assert_eq!(
             coord.map(&Utc.ymd(3000, 1, 1).and_hms(0, 0, 0), (0, 100)),
-            Ok(100)
+            100
         );
 
         let kps = coord.key_points(23);
@@ -1194,8 +1144,8 @@ mod test {
     fn test_duration_long_range() {
         let coord: RangedDuration = (Duration::days(-1000000)..Duration::days(1000000)).into();
 
-        assert_eq!(coord.map(&Duration::days(-1000000), (0, 100)), Ok(0));
-        assert_eq!(coord.map(&Duration::days(1000000), (0, 100)), Ok(100));
+        assert_eq!(coord.map(&Duration::days(-1000000), (0, 100)), 0);
+        assert_eq!(coord.map(&Duration::days(1000000), (0, 100)), 100);
 
         let kps = coord.key_points(23);
 
@@ -1281,10 +1231,9 @@ mod test {
         let mid = Utc.ymd(2022, 1, 1).and_hms(8, 0, 0);
         let coord: RangedDateTime<_> = (start_time..end_time).into();
         let pos = coord.map(&mid, (1000, 2000));
-        assert_eq!(pos, Ok(1500));
-        let value: Result<Option<DateTime<Utc>>, MathError> =
-            coord.unmap(pos.unwrap(), (1000, 2000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(pos, 1500);
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(mid));
     }
 
     #[test]
@@ -1294,9 +1243,9 @@ mod test {
         let mid = NaiveDate::from_ymd(2022, 1, 1).and_hms_milli(8, 0, 0, 0);
         let coord: RangedDateTime<_> = (start_time..end_time).into();
         let pos = coord.map(&mid, (1000, 2000));
-        assert_eq!(pos, Ok(1500));
-        let value = coord.unmap(pos.unwrap(), (1000, 2000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(pos, 1500);
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(mid));
     }
 
     #[test]
@@ -1306,9 +1255,9 @@ mod test {
         let mid = Utc.ymd(2022, 1, 1);
         let coord: RangedDate<Date<_>> = (start_date..end_date).into();
         let pos = coord.map(&mid, (1000, 2000));
-        assert_eq!(pos, Ok(1500));
-        let value = coord.unmap(pos.unwrap(), (1000, 2000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(pos, 1500);
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(mid));
     }
 
     #[test]
@@ -1318,9 +1267,9 @@ mod test {
         let mid = NaiveDate::from_ymd(2022, 1, 1);
         let coord: RangedDate<NaiveDate> = (start_date..end_date).into();
         let pos = coord.map(&mid, (1000, 2000));
-        assert_eq!(pos, Ok(1500));
-        let value = coord.unmap(pos.unwrap(), (1000, 2000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(pos, 1500);
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(mid));
     }
 
     #[test]
@@ -1330,9 +1279,9 @@ mod test {
         let mid = start_time + Duration::nanoseconds(950);
         let coord: RangedDateTime<_> = (start_time..end_time).into();
         let pos = coord.map(&mid, (1000, 2000));
-        assert_eq!(pos, Ok(1500));
-        let value = coord.unmap(pos.unwrap(), (1000, 2000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(pos, 1500);
+        let value = coord.unmap(pos, (1000, 2000));
+        assert_eq!(value, Some(mid));
     }
 
     #[test]
@@ -1341,9 +1290,9 @@ mod test {
         let end_time = start_time + Duration::nanoseconds(400);
         let coord: RangedDateTime<_> = (start_time..end_time).into();
         let value = coord.unmap(2000, (1000, 2000));
-        assert_eq!(value, Ok(Some(end_time)));
+        assert_eq!(value, Some(end_time));
         let mid = start_time + Duration::nanoseconds(200);
         let value = coord.unmap(500, (0, 1000));
-        assert_eq!(value, Ok(Some(mid)));
+        assert_eq!(value, Some(mid));
     }
 }
