@@ -79,9 +79,7 @@ impl Drop for FontExt {
 
 impl FontExt {
     fn new(font: Font) -> FontResult<Self> {
-        let handle = font
-            .handle()
-            .ok_or(FontError::FontHandleUnavailable)?;
+        let handle = font.handle().ok_or(FontError::FontHandleUnavailable)?;
         let face = match handle {
             Handle::Memory { bytes, font_index } => {
                 let face = ttf_parser::Face::parse(bytes.as_slice(), font_index)

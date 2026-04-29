@@ -1,4 +1,5 @@
-use crate::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind};
+#![warn(clippy::arithmetic_side_effects)]
+use crate::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind, MathError, math_guard::checked_sub};
 
 use std::cmp::{Ord, Ordering, PartialOrd};
 
@@ -11,25 +12,26 @@ struct Edge {
 }
 
 impl Edge {
-    fn horizontal_sweep(mut from: BackendCoord, mut to: BackendCoord) -> Option<Edge> {
+    fn horizontal_sweep(mut from: BackendCoord, mut to: BackendCoord) -> Result<Option<Edge>, MathError> {
         if from.0 == to.0 {
-            return None;
+            return Ok(None);
         }
 
         if from.0 > to.0 {
             std::mem::swap(&mut from, &mut to);
         }
 
-        Some(Edge {
+        let total_epoch = checked_sub::<i32, MathError>(to.0, from.0, MathError::ValueOverflow)? as u32;
+        Ok(Some(Edge {
             epoch: 0,
-            total_epoch: (to.0 - from.0) as u32,
+            total_epoch,
             slave_begin: from.1,
             slave_end: to.1,
-        })
+        }))
     }
 
-    fn vertical_sweep(from: BackendCoord, to: BackendCoord) -> Option<Edge> {
-        Edge::horizontal_sweep((from.1, from.0), (to.1, to.0))
+    fn vertical_sweep(from: BackendCoord, to: BackendCoord) -> Result<Option<Edge>, MathError> {
+        Ok(Edge::horizontal_sweep((from.1, from.0), (to.1, to.0))?)
     }
 
     fn get_master_pos(&self) -> i32 {

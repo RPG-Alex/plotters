@@ -1,4 +1,6 @@
 use super::{BackendColor, BackendCoord};
+use crate::math_guard::checked_neg;
+use crate::MathError;
 use std::error::Error;
 
 /// Describes font family.
@@ -129,13 +131,16 @@ impl FontTransform {
     /// - `x`: The x coordinate in pixels before transform
     /// - `y`: The y coordinate in pixels before transform
     /// - **returns**: The coordinate after transform
-    pub fn transform(&self, x: i32, y: i32) -> (i32, i32) {
-        match self {
+    pub fn transform(&self, x: i32, y: i32) -> Result<(i32, i32), MathError> {
+        Ok(match self {
             FontTransform::None => (x, y),
-            FontTransform::Rotate90 => (-y, x),
-            FontTransform::Rotate180 => (-x, -y),
-            FontTransform::Rotate270 => (y, -x),
-        }
+            FontTransform::Rotate90 => (checked_neg(y, MathError::ValueOverflow)?, x),
+            FontTransform::Rotate180 => (
+                checked_neg(x, MathError::ValueOverflow)?,
+                checked_neg(y, MathError::ValueOverflow)?,
+            ),
+            FontTransform::Rotate270 => (y, checked_neg(x, MathError::ValueOverflow)?),
+        })
     }
 }
 

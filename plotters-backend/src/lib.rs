@@ -63,9 +63,16 @@
 */
 use std::error::Error;
 
+pub mod error;
 pub mod rasterizer;
+pub use error::DrawingErrorKind;
+pub mod math_errors;
+pub use math_errors::MathError;
+
 mod style;
 mod text;
+
+mod math_guard;
 
 pub use style::{BackendColor, BackendStyle};
 pub use text::{text_anchor, BackendTextStyle, FontFamily, FontStyle, FontTransform};
@@ -75,26 +82,6 @@ use text_anchor::{HPos, VPos};
 /// A coordinate in the pixel-based backend. The coordinate follows the framebuffer's convention,
 /// which defines the top-left point as (0, 0).
 pub type BackendCoord = (i32, i32);
-
-/// The error produced by a drawing backend.
-#[derive(Debug)]
-pub enum DrawingErrorKind<E: Error + Send + Sync> {
-    /// A drawing backend error
-    DrawingError(E),
-    /// A font rendering error
-    FontError(Box<dyn Error + Send + Sync + 'static>),
-}
-
-impl<E: Error + Send + Sync> std::fmt::Display for DrawingErrorKind<E> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        match self {
-            DrawingErrorKind::DrawingError(e) => write!(fmt, "Drawing backend error: {}", e),
-            DrawingErrorKind::FontError(e) => write!(fmt, "Font loading error: {}", e),
-        }
-    }
-}
-
-impl<E: Error + Send + Sync> Error for DrawingErrorKind<E> {}
 
 ///  The drawing backend trait, which implements the low-level drawing APIs.
 ///  This trait has a set of default implementation. And the minimal requirement of
@@ -248,7 +235,7 @@ pub trait DrawingBackend: Sized {
         let trans = style.transform();
         let (w, h) = self.get_size();
         let drawing_result = style.draw(text, (0, 0), |x, y, color| {
-            let (x, y) = trans.transform(x + dx - min_x, y + dy - min_y);
+            let (x, y) = trans.transform(x + dx - min_x, y + dy - min_y)?;
             let (x, y) = (pos.0 + x, pos.1 + y);
             if x >= 0 && x < w as i32 && y >= 0 && y < h as i32 {
                 self.draw_pixel((x, y), color)
