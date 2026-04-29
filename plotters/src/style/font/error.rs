@@ -51,3 +51,60 @@ impl From<MathError> for FontError {
 }
 
 impl std::error::Error for FontError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn displays_simple_font_errors() {
+        assert_eq!(FontError::LockError.to_string(), "Could not lock mutex");
+        assert_eq!(
+            FontError::NoSuchFont("Arial".into(), "Bold".into()).to_string(),
+            "No such font: Arial Bold"
+        );
+        assert_eq!(
+            FontError::FontHandleUnavailable.to_string(),
+            "Font handle is not available"
+        );
+        assert_eq!(
+            FontError::FaceParseError("bad face".into()).to_string(),
+            "Font face parse error bad face"
+        );
+        assert_eq!(FontError::Unknown.to_string(), "Unknown font error");
+        assert_eq!(FontError::FontUnavailable.to_string(), "Font unavailable");
+    }
+
+    #[test]
+    fn converts_math_error_into_font_error() {
+        let err: FontError = MathError::ValueOverflow.into();
+
+        assert!(matches!(
+            err,
+            FontError::MathError(MathError::ValueOverflow)
+        ));
+    }
+
+    #[test]
+    fn displays_math_error() {
+        let err = FontError::MathError(MathError::ZeroDivision);
+
+        assert_eq!(err.to_string(), "Math error: attempted to divide by zero");
+    }
+
+    #[test]
+    fn implements_std_error() {
+        fn assert_error<E: Error>() {}
+
+        assert_error::<FontError>();
+    }
+
+    #[test]
+    fn clones_font_error() {
+        let err = FontError::NoSuchFont("serif".into(), "italic".into());
+        let cloned = err.clone();
+
+        assert_eq!(err.to_string(), cloned.to_string());
+    }
+}
