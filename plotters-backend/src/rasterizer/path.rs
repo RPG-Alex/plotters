@@ -1,28 +1,47 @@
-use crate::BackendCoord;
+#![warn(clippy::arithmetic_side_effects)]
+use crate::{
+    math_guard::{checked_add, checked_mul, checked_sub, non_zero_checked},
+    BackendCoord, MathError,
+};
+use std::convert::From;
 
 // Compute the tanginal and normal vectors of the given straight line.
-fn get_dir_vector(from: BackendCoord, to: BackendCoord, flag: bool) -> ((f64, f64), (f64, f64)) {
-    let v = (i64::from(to.0 - from.0), i64::from(to.1 - from.1));
-    let l = ((v.0 * v.0 + v.1 * v.1) as f64).sqrt();
+fn get_dir_vector(
+    from: BackendCoord,
+    to: BackendCoord,
+    flag: bool,
+) -> Result<((f64, f64), (f64, f64)), MathError> {
+    let dx = i64::from(checked_sub(to.0, from.0, MathError::ValueOverflow)?);
+    let dy = i64::from(checked_sub(to.1, from.1, MathError::ValueOverflow)?);
 
-    let v = (v.0 as f64 / l, v.1 as f64 / l);
+    let x2 = checked_mul(dx, dx, MathError::ValueOverflow)?;
+    let y2 = checked_mul(dy, dy, MathError::ValueOverflow)?;
+    let sum = checked_add(x2, y2, MathError::ValueOverflow)? as f64;
 
-    if flag {
+    let len = non_zero_checked(sum.sqrt(), MathError::ZeroDivision)?;
+
+    let v = (dx as f64 / len, dy as f64 / len);
+
+    Ok(if flag {
         (v, (v.1, -v.0))
     } else {
         (v, (-v.1, v.0))
-    }
+    })
 }
 
 // Compute the polygonized vertex of the given angle
 // d is the distance between the polygon edge and the actual line.
 // d can be negative, this will emit a vertex on the other side of the line.
-fn compute_polygon_vertex(triple: &[BackendCoord; 3], d: f64, buf: &mut Vec<BackendCoord>) {
+fn compute_polygon_vertex(
+    triple: &[BackendCoord; 3],
+    d: f64,
+    buf: &mut Vec<BackendCoord>,
+) -> Result<(), MathError> {
     buf.clear();
 
     // Compute the tanginal and normal vectors of the given straight line.
-    let (a_t, a_n) = get_dir_vector(triple[0], triple[1], false);
-    let (b_t, b_n) = get_dir_vector(triple[2], triple[1], true);
+    let (a_t, a_n) = get_dir_vector(triple[0], triple[1], false)?;
+    let (b_t, b_n) = get_dir_vector(triple[2], triple[1], true)?;
 
     // Compute a point that is d away from the line for line a and line b.
     let a_p = (
@@ -37,7 +56,7 @@ fn compute_polygon_vertex(triple: &[BackendCoord; 3], d: f64, buf: &mut Vec<Back
     // Check if 3 points are colinear, up to precision. If so, just emit the point.
     if (a_t.1 * b_t.0 - a_t.0 * b_t.1).abs() <= f64::EPSILON {
         buf.push((a_p.0 as i32, a_p.1 as i32));
-        return;
+        return Ok(());
     }
 
     // So we are actually computing the intersection of two lines:
@@ -74,18 +93,19 @@ fn compute_polygon_vertex(triple: &[BackendCoord; 3], d: f64, buf: &mut Vec<Back
         if dist_square > d * d * 16.0 {
             buf.push((a_p.0.round() as i32, a_p.1.round() as i32));
             buf.push((b_p.0.round() as i32, b_p.1.round() as i32));
-            return;
+            return Ok(());
         }
     }
 
     buf.push((x.round() as i32, y.round() as i32));
+    Ok(())
 }
 
 fn traverse_vertices<'a>(
     mut vertices: impl Iterator<Item = &'a BackendCoord>,
     width: u32,
     mut op: impl FnMut(BackendCoord),
-) {
+) -> Result<(), MathError> {
     let mut a = vertices.next().unwrap();
     let mut b = vertices.next().unwrap();
 
@@ -94,11 +114,11 @@ fn traverse_vertices<'a>(
         if let Some(new_b) = vertices.next() {
             b = new_b;
         } else {
-            return;
+            return Ok(());
         }
     }
 
-    let (_, n) = get_dir_vector(*a, *b, false);
+    let (_, n) = get_dir_vector(*a, *b, false)?;
 
     op((
         (f64::from(a.0) + n.0 * f64::from(width) / 2.0).round() as i32,
@@ -115,33 +135,37 @@ fn traverse_vertices<'a>(
         recent.swap(0, 1);
         recent.swap(1, 2);
         recent[2] = *p;
-        compute_polygon_vertex(&recent, f64::from(width) / 2.0, &mut vertex_buf);
+        compute_polygon_vertex(&recent, f64::from(width) / 2.0, &mut vertex_buf)?;
         vertex_buf.iter().cloned().for_each(&mut op);
     }
 
     let b = recent[1];
     let a = recent[2];
 
-    let (_, n) = get_dir_vector(a, b, true);
+    let (_, n) = get_dir_vector(a, b, true)?;
 
     op((
         (f64::from(a.0) + n.0 * f64::from(width) / 2.0).round() as i32,
         (f64::from(a.1) + n.1 * f64::from(width) / 2.0).round() as i32,
     ));
+    Ok(())
 }
 
 /// Covert a path with >1px stroke width into polygon.
-pub fn polygonize(vertices: &[BackendCoord], stroke_width: u32) -> Vec<BackendCoord> {
+pub fn polygonize(
+    vertices: &[BackendCoord],
+    stroke_width: u32,
+) -> Result<Vec<BackendCoord>, MathError> {
     if vertices.len() < 2 {
-        return vec![];
+        return Ok(vec![]);
     }
 
     let mut ret = vec![];
 
-    traverse_vertices(vertices.iter(), stroke_width, |v| ret.push(v));
-    traverse_vertices(vertices.iter().rev(), stroke_width, |v| ret.push(v));
+    traverse_vertices(vertices.iter(), stroke_width, |v| ret.push(v))?;
+    traverse_vertices(vertices.iter().rev(), stroke_width, |v| ret.push(v))?;
 
-    ret
+    Ok(ret)
 }
 
 #[cfg(test)]
@@ -153,7 +177,7 @@ mod test {
     fn test_no_inf_in_compute_polygon_vertex() {
         let path = [(335, 386), (338, 326), (340, 286)];
         let mut buf = Vec::new();
-        compute_polygon_vertex(&path, 2.0, buf.as_mut());
+        compute_polygon_vertex(&path, 2.0, buf.as_mut()).unwrap();
         assert!(!buf.is_empty());
         let nani32 = f64::INFINITY as i32;
         assert!(!buf.iter().any(|&v| v.0 == nani32 || v.1 == nani32));
@@ -164,9 +188,93 @@ mod test {
     fn standard_corner() {
         let path = [(10, 10), (20, 10), (20, 20)];
         let mut buf = Vec::new();
-        compute_polygon_vertex(&path, 2.0, buf.as_mut());
+        compute_polygon_vertex(&path, 2.0, buf.as_mut()).unwrap();
         assert!(!buf.is_empty());
         let buf2 = vec![(18, 12)];
         assert_eq!(buf, buf2);
+    }
+    #[test]
+    fn get_dir_vector_rejects_zero_length_line() {
+        assert_eq!(
+            get_dir_vector((10, 10), (10, 10), false),
+            Err(MathError::ZeroDivision)
+        );
+    }
+
+    #[test]
+    fn get_dir_vector_rejects_extreme_delta_overflow() {
+        assert_eq!(
+            get_dir_vector((i32::MIN, 0), (i32::MAX, 0), false),
+            Err(MathError::ValueOverflow)
+        );
+    }
+
+    #[test]
+    fn get_dir_vector_returns_unit_tangent_for_horizontal_line() {
+        let result = get_dir_vector((0, 0), (10, 0), false);
+
+        assert_eq!(result, Ok(((1.0, 0.0), (-0.0, 1.0))));
+    }
+
+    #[test]
+    fn get_dir_vector_returns_unit_tangent_for_vertical_line() {
+        let result = get_dir_vector((0, 0), (0, 10), false);
+
+        assert_eq!(result, Ok(((0.0, 1.0), (-1.0, 0.0))));
+    }
+
+    #[test]
+    fn compute_polygon_vertex_handles_colinear_points() {
+        let path = [(0, 0), (10, 0), (20, 0)];
+        let mut buf = Vec::new();
+
+        assert_eq!(compute_polygon_vertex(&path, 2.0, &mut buf), Ok(()));
+        assert_eq!(buf.len(), 1);
+    }
+
+    #[test]
+    fn compute_polygon_vertex_rejects_repeated_adjacent_point() {
+        let path = [(10, 10), (10, 10), (20, 20)];
+        let mut buf = Vec::new();
+
+        assert_eq!(
+            compute_polygon_vertex(&path, 2.0, &mut buf),
+            Err(MathError::ZeroDivision)
+        );
+    }
+
+    #[test]
+    fn traverse_vertices_with_only_repeated_points_returns_ok() {
+        let vertices = [(1, 1), (1, 1), (1, 1)];
+        let mut out = Vec::new();
+
+        assert_eq!(
+            traverse_vertices(vertices.iter(), 2, |v| out.push(v)),
+            Ok(())
+        );
+
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn polygonize_returns_empty_for_less_than_two_vertices() {
+        assert_eq!(polygonize(&[], 2), Ok(vec![]));
+        assert_eq!(polygonize(&[(1, 1)], 2), Ok(vec![]));
+    }
+
+    #[test]
+    fn polygonize_returns_vertices_for_simple_line() {
+        let out = polygonize(&[(10, 10), (20, 10)], 2)
+            .expect("polygonize should succeed for a simple line");
+
+        assert!(!out.is_empty());
+    }
+
+    #[test]
+    fn polygonize_rejects_extreme_coordinate_span() {
+        assert_eq!(
+            polygonize(&[(i32::MIN, 0), (i32::MAX, 0)], 2),
+            Err(MathError::ValueOverflow)
+        );
     }
 }
