@@ -1,6 +1,7 @@
 #![warn(clippy::arithmetic_side_effects)]
+use crate::math_guard::{checked_add, checked_neg, float_to_integer_checked};
 use crate::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind};
-
+use crate::math_errors::MathError;
 fn draw_part_a<
     B: DrawingBackend,
     Draw: FnMut(i32, (f64, f64)) -> Result<(), DrawingErrorKind<B::ErrorType>>,
@@ -13,9 +14,9 @@ fn draw_part_a<
         - (radius as f64 - height) * (radius as f64 - height))
         .sqrt();
 
-    let x0 = (-half_width).ceil() as i32;
-    let x1 = half_width.floor() as i32;
-
+    let x0 = float_to_integer_checked::<f64, i32, MathError>((half_width).ceil(), MathError::NonFiniteCalculation)?;
+    let x1 = float_to_integer_checked::<f64, i32, MathError>(half_width.floor(), MathError::NonFiniteCalculation)?; 
+    
     let y0 = (radius as f64 - height).ceil();
 
     for x in x0..=x1 {
@@ -34,9 +35,11 @@ fn draw_part_b<
     size: f64,
     mut draw: Draw,
 ) -> Result<(), DrawingErrorKind<B::ErrorType>> {
-    let from = from.floor();
-    for x in (from - size).floor() as i32..=from as i32 {
-        check_result!(draw(x, (-x as f64, x as f64)));
+    let len = float_to_integer_checked::<f64, i32, MathError>((from-size).floor(), MathError::NonFiniteCalculation)?;
+    let from = float_to_integer_checked::<f64, i32, MathError>(from.floor(), MathError::NonFiniteCalculation)?;
+    for x in len..=from {
+        let neg_x = checked_neg::<i32, MathError>(x, MathError::ValueOutOfRange)?;
+        check_result!(draw(x, (f64::from(neg_x), f64::from(x))));
     }
     Ok(())
 }
@@ -68,8 +71,9 @@ fn draw_part_c<
 
         check_result!(draw(x, (y0, y1)));
     }
-
-    for x in x1 + 1..r {
+    let start = checked_add(x1, 1,MathError::ValueUnderflow)?;
+    let end = checked_add(x1, r, MathError::ValueUnderflow)?;
+    for x in start..end {
         let outer_y0 = ((r_limit as f64) * (r_limit as f64) - x as f64 * x as f64).sqrt();
         let inner_y0 = r as f64 - 1.0;
         let y0 = outer_y0.min(inner_y0);
