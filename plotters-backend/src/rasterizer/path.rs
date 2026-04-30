@@ -1,4 +1,3 @@
-#![warn(clippy::arithmetic_side_effects)]
 use crate::{
     math_guard::{checked_add, checked_mul, checked_sub, non_zero_checked},
     BackendCoord, MathError,

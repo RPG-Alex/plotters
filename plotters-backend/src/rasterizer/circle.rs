@@ -1,3 +1,4 @@
+#![warn(clippy::arithmetic_side_effects)]
 use crate::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind};
 
 fn draw_part_a<
