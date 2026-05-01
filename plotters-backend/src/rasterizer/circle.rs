@@ -1,5 +1,5 @@
 #![warn(clippy::arithmetic_side_effects)]
-use crate::math_guard::{checked_add, checked_neg, float_to_integer_checked};
+use crate::math_guard::{checked_add, checked_neg, checked_sub, float_to_integer_checked};
 use crate::{BackendCoord, BackendStyle, DrawingBackend, DrawingErrorKind};
 use crate::math_errors::MathError;
 fn draw_part_a<
@@ -14,8 +14,8 @@ fn draw_part_a<
         - (radius as f64 - height) * (radius as f64 - height))
         .sqrt();
 
-    let x0 = float_to_integer_checked::<f64, i32, MathError>((half_width).ceil(), MathError::NonFiniteCalculation)?;
-    let x1 = float_to_integer_checked::<f64, i32, MathError>(half_width.floor(), MathError::NonFiniteCalculation)?; 
+    let x0: i32 = float_to_integer_checked::<f64, i32, MathError>((half_width).ceil(), MathError::NonFiniteCalculation)?;
+    let x1: i32 = float_to_integer_checked::<f64, i32, MathError>(half_width.floor(), MathError::NonFiniteCalculation)?; 
     
     let y0 = (radius as f64 - height).ceil();
 
@@ -71,8 +71,8 @@ fn draw_part_c<
 
         check_result!(draw(x, (y0, y1)));
     }
-    let start = checked_add(x1, 1,MathError::ValueUnderflow)?;
-    let end = checked_add(x1, r, MathError::ValueUnderflow)?;
+    let start: i32 = checked_add::<i32, MathError>(x1, 1,MathError::ValueUnderflow)?;
+    let end: i32 = checked_add::<i32, MathError>(x1, r, MathError::ValueUnderflow)?;
     for x in start..end {
         let outer_y0 = ((r_limit as f64) * (r_limit as f64) - x as f64 * x as f64).sqrt();
         let inner_y0 = r as f64 - 1.0;
@@ -106,13 +106,20 @@ fn draw_sweep_line<B: DrawingBackend, S: BackendStyle>(
     let ve = e - e.floor();
 
     if dx == 0 {
+        let px0 = checked_add::<i32, MathError>(p0, x0, MathError::ValueUnderflow)?;
+        let s_ceil = float_to_integer_checked::<f64, i32, MathError>(s.ceil(), MathError::NonFiniteCalculation)?;
+        let sy0 = checked_add::<i32, MathError>(s_ceil, y0, MathError::ValueUnderflow)?;
+        let e_floor = float_to_integer_checked::<f64, i32, MathError>(e.floor(), MathError::NonFiniteCalculation)?;
+        let ey0 = checked_add::<i32, MathError>(e_floor, y0, MathError::ValueUnderflow)?;
         check_result!(b.draw_line(
-            (p0 + x0, s.ceil() as i32 + y0),
-            (p0 + x0, e.floor() as i32 + y0),
+            (px0, sy0),
+            (px0, ey0),
             &style.color()
         ));
-        check_result!(b.draw_pixel((p0 + x0, s.ceil() as i32 + y0 - 1), style.color().mix(vs)));
-        check_result!(b.draw_pixel((p0 + x0, e.floor() as i32 + y0 + 1), style.color().mix(ve)));
+        let sy0sub1 = checked_sub::<i32, MathError>(sy0, 1, MathError::ValueOverflow)?;
+        let ey0add1 = checked_add::<i32, MathError>(ey0, 1, MathError::ValueUnderflow)?;
+        check_result!(b.draw_pixel((px0, sy0sub1), style.color().mix(vs)));
+        check_result!(b.draw_pixel((px0, ey0add1), style.color().mix(ve)));
     } else {
         check_result!(b.draw_line(
             (s.ceil() as i32 + x0, p0 + y0),
